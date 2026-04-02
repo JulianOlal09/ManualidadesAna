@@ -94,7 +94,119 @@ Se implementó un sistema de redirección inteligente utilizando el parámetro `
 
 ---
 
-## 7. Comandos de Desarrollo
+## 7. Deployment en Producción
+
+### 7.1 Infraestructura
+- **Base de Datos**: MySQL en Railway
+- **Backend**: Node.js/Express desplegado en Railway
+- **Frontend**: Next.js desplegado en Vercel
+
+### 7.2 Configuración de Railway (Backend)
+
+#### Variables de Entorno
+```bash
+DATABASE_URL=mysql://root:password@host:port/railway
+JWT_SECRET=your-secret-key
+PORT=3001
+```
+
+#### Proceso de Deploy
+Railway está configurado con **Nixpacks** para manejar el build y deployment:
+
+**Build Process:**
+```bash
+npm ci                    # Instala dependencias
+prisma generate          # Genera Prisma Client (postinstall)
+npm run build            # Build script (solo mensaje)
+```
+
+**Start Process:**
+El archivo `scripts/start.sh` ejecuta:
+1. Migraciones de Prisma: `node node_modules/prisma/build/index.js db push --skip-generate`
+2. Inicio del servidor: `node --import tsx src/server.ts`
+
+#### Archivos de Configuración
+
+**nixpacks.toml:**
+```toml
+[phases.setup]
+nixPkgs = ["nodejs"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "node node_modules/prisma/build/index.js db push --skip-generate && node --import tsx src/server.ts"
+```
+
+**scripts/start.sh:**
+```bash
+#!/bin/bash
+set -e
+
+echo "Running Prisma migrations..."
+node node_modules/prisma/build/index.js db push --skip-generate
+
+echo "Starting server..."
+exec node --import tsx src/server.ts
+```
+
+#### Notas Importantes
+- Las migraciones se ejecutan en **startup** (no en build) para tener acceso a la red privada de Railway
+- Se usa el path directo de Node (`node node_modules/prisma/build/index.js`) en lugar de `npx` para evitar problemas de permisos
+- El servidor NO ejecuta migraciones en el código (ya se manejan en el script de inicio)
+- `prisma` debe estar en `dependencies` (no en `devDependencies`)
+
+### 7.3 Configuración de Vercel (Frontend)
+
+#### Variables de Entorno
+```bash
+NEXT_PUBLIC_API_URL=https://your-backend-url.railway.app
+```
+
+El frontend se conecta automáticamente al backend de Railway a través de esta variable.
+
+### 7.4 Conexión a la Base de Datos de Producción
+
+Para conectarte y visualizar los datos de producción:
+
+**Opción 1: Prisma Studio (Recomendada)**
+```bash
+# En backend/.env temporal, configurar:
+DATABASE_URL="mysql://root:password@host:port/railway"
+
+# Ejecutar:
+npx prisma studio
+# Abre http://localhost:5555
+```
+
+**Opción 2: Cliente MySQL**
+Usar MySQL Workbench u otro cliente con las credenciales de Railway:
+- Host: `hopper.proxy.rlwy.net` (o tu host)
+- Port: `57491` (o tu puerto)
+- Username: `root`
+- Password: (desde Railway)
+- Database: `railway`
+
+### 7.5 Troubleshooting Común
+
+**Error: "Permission denied" al ejecutar Prisma**
+- Solución: Usar path directo de Node en lugar de `npx`
+- Verificar que `prisma` esté en `dependencies`
+
+**Error: "Can't reach database server" durante build**
+- Solución: Mover migraciones del build al start script
+- La base de datos no está disponible durante la fase de build
+
+**Error: Tablas no existen en la base de datos**
+- Solución: Ejecutar manualmente `npm run migrate` o verificar que el start script ejecute las migraciones
+
+---
+
+## 8. Comandos de Desarrollo
 
 ### Backend
 ```bash
@@ -110,7 +222,7 @@ npm run dev        # Puerto 3000
 
 ---
 
-## 8. Consideraciones de UI/UX
+## 9. Consideraciones de UI/UX
 - **Navbar**: Diseño moderno con gradiente (rosa-púrpura-azul), logo de la marca (`Logo-Letras.png`) y posición sticky.
 - **Acceso Público**: Todo el catálogo es navegable sin cuenta.
 - **Restricción de Admin**: Los administradores no pueden usar el carrito ni realizar compras para evitar inconsistencias en el sistema.
