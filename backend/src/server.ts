@@ -1,16 +1,11 @@
 import 'dotenv/config';
 import app from './app.js';
 import { prisma } from './lib/prisma.js';
-import { execSync } from 'child_process';
 
 const PORT = process.env.PORT || 3000;
 
 async function main() {
   try {
-    console.log('Setting up database...');
-    execSync('npx prisma db push --skip-generate', { stdio: 'inherit' });
-    console.log('Database ready');
-    
     await prisma.$connect();
     console.log('Database connected');
 
