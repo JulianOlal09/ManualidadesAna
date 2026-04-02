@@ -8,9 +8,13 @@ import categoryRoutes from './routes/category.routes.js';
 import cartRoutes from './routes/cart.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import inventoryRoutes from './routes/inventory.routes.js';
+import supplyRoutes from './routes/supply.routes.js';
 const app = express();
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+    origin: '*',
+    credentials: true,
+}));
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -23,6 +27,7 @@ app.use('/api', categoryRoutes);
 app.use('/api', cartRoutes);
 app.use('/api', orderRoutes);
 app.use('/api', inventoryRoutes);
+app.use('/api', supplyRoutes);
 app.use((err, _req, res, _next) => {
     console.error('Error:', err.message);
     res.status(500).json({

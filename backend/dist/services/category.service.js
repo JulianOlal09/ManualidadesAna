@@ -25,7 +25,7 @@ export async function getCategoryById(id) {
 export async function createCategory(input) {
     const existingCategory = await prisma.category.findFirst({
         where: {
-            name: { equals: input.name, mode: 'insensitive' },
+            name: { equals: input.name.toLowerCase() },
             isActive: true,
         },
     });
@@ -58,7 +58,7 @@ export async function updateCategory(id, input) {
     if (input.name) {
         const duplicateCategory = await prisma.category.findFirst({
             where: {
-                name: { equals: input.name, mode: 'insensitive' },
+                name: { equals: input.name.toLowerCase() },
                 isActive: true,
                 id: { not: id },
             },
@@ -106,6 +106,18 @@ export async function deleteCategory(id) {
     return prisma.category.update({
         where: { id },
         data: { isActive: false },
+    });
+}
+export async function toggleCategoryActive(id) {
+    const exists = await prisma.category.findFirst({
+        where: { id },
+    });
+    if (!exists) {
+        throw new Error('NOT_FOUND');
+    }
+    return prisma.category.update({
+        where: { id },
+        data: { isActive: !exists.isActive },
     });
 }
 //# sourceMappingURL=category.service.js.map

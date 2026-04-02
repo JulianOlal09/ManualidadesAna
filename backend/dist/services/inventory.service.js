@@ -1,54 +1,43 @@
 import { prisma } from '../lib/prisma.js';
 const LOW_STOCK_THRESHOLD = 5;
 export async function getAllInventory() {
-    return prisma.variant.findMany({
+    return prisma.product.findMany({
         where: {
             isActive: true,
-            product: {
-                isActive: true,
-            },
         },
         include: {
-            product: {
-                include: {
-                    category: true,
-                },
-            },
+            category: true,
         },
         orderBy: {
             stock: 'asc',
         },
     });
 }
-export async function getVariantInventory(variantId) {
-    return prisma.variant.findFirst({
+export async function getProductInventory(productId) {
+    return prisma.product.findFirst({
         where: {
-            id: variantId,
+            id: productId,
             isActive: true,
         },
         include: {
-            product: {
-                include: {
-                    category: true,
-                },
-            },
+            category: true,
         },
     });
 }
-export async function adjustStock(variantId, input) {
+export async function adjustStock(productId, input) {
     const { quantity, operation } = input;
-    const variant = await prisma.variant.findUnique({
-        where: { id: variantId },
+    const product = await prisma.product.findUnique({
+        where: { id: productId },
     });
-    if (!variant) {
-        throw new Error('VARIANT_NOT_FOUND');
+    if (!product) {
+        throw new Error('PRODUCT_NOT_FOUND');
     }
-    if (!variant.isActive) {
-        throw new Error('VARIANT_NOT_ACTIVE');
+    if (!product.isActive) {
+        throw new Error('PRODUCT_NOT_ACTIVE');
     }
     let newStock;
     if (operation === 'add') {
-        newStock = variant.stock + quantity;
+        newStock = product.stock + quantity;
     }
     else {
         newStock = quantity;
@@ -56,46 +45,36 @@ export async function adjustStock(variantId, input) {
     if (newStock < 0) {
         throw new Error('INVALID_STOCK');
     }
-    return prisma.variant.update({
-        where: { id: variantId },
+    return prisma.product.update({
+        where: { id: productId },
         data: { stock: newStock },
     });
 }
 export async function getLowStockAlerts() {
-    const variants = await prisma.variant.findMany({
+    const products = await prisma.product.findMany({
         where: {
             isActive: true,
-            product: {
-                isActive: true,
-            },
             stock: {
                 lte: LOW_STOCK_THRESHOLD,
             },
         },
         include: {
-            product: {
-                include: {
-                    category: true,
-                },
-            },
+            category: true,
         },
         orderBy: {
             stock: 'asc',
         },
     });
-    return variants.map((variant) => ({
-        variant: variant,
-        currentStock: variant.stock,
+    return products.map((product) => ({
+        product: product,
+        currentStock: product.stock,
         minStock: LOW_STOCK_THRESHOLD,
     }));
 }
 export async function getOutOfStockCount() {
-    return prisma.variant.count({
+    return prisma.product.count({
         where: {
             isActive: true,
-            product: {
-                isActive: true,
-            },
             stock: {
                 lte: 0,
             },
@@ -103,12 +82,9 @@ export async function getOutOfStockCount() {
     });
 }
 export async function getLowStockCount() {
-    return prisma.variant.count({
+    return prisma.product.count({
         where: {
             isActive: true,
-            product: {
-                isActive: true,
-            },
             stock: {
                 gt: 0,
                 lte: LOW_STOCK_THRESHOLD,
@@ -117,32 +93,23 @@ export async function getLowStockCount() {
     });
 }
 export async function getInventoryStats() {
-    const [totalVariants, outOfStock, lowStock] = await Promise.all([
-        prisma.variant.count({
+    const [totalProducts, outOfStock, lowStock] = await Promise.all([
+        prisma.product.count({
             where: {
                 isActive: true,
-                product: {
-                    isActive: true,
-                },
             },
         }),
-        prisma.variant.count({
+        prisma.product.count({
             where: {
                 isActive: true,
-                product: {
-                    isActive: true,
-                },
                 stock: {
                     lte: 0,
                 },
             },
         }),
-        prisma.variant.count({
+        prisma.product.count({
             where: {
                 isActive: true,
-                product: {
-                    isActive: true,
-                },
                 stock: {
                     gt: 0,
                     lte: LOW_STOCK_THRESHOLD,
@@ -151,10 +118,10 @@ export async function getInventoryStats() {
         }),
     ]);
     return {
-        totalVariants,
+        totalProducts,
         outOfStock,
         lowStock,
-        inStock: totalVariants - outOfStock - lowStock,
+        inStock: totalProducts - outOfStock - lowStock,
     };
 }
 //# sourceMappingURL=inventory.service.js.map

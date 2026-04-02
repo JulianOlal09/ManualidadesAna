@@ -1,3 +1,4 @@
+import axios from 'axios';
 import apiClient from '@/lib/api';
 import { ApiResponse, CartItem, CartItemRequest, CartUpdateRequest } from '@/types';
 
@@ -27,16 +28,28 @@ export const cartService = {
   },
 
   async removeItem(productId: number): Promise<void> {
-    const response = await apiClient.delete<ApiResponse<null>>(`/cart/items/${productId}`);
-    if (!response.data.success) {
-      throw new Error(response.data.error?.message || 'Failed to remove cart item');
+    try {
+      const response = await apiClient.delete<ApiResponse<null>>(`/cart/items/${productId}`);
+      if (response.status === 204) return;
+      if (!response.data.success) {
+        throw new Error(response.data.error?.message || 'Failed to remove cart item');
+      }
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.status === 204) return;
+      throw err;
     }
   },
 
   async clearCart(): Promise<void> {
-    const response = await apiClient.delete<ApiResponse<null>>('/cart');
-    if (!response.data.success) {
-      throw new Error(response.data.error?.message || 'Failed to clear cart');
+    try {
+      const response = await apiClient.delete<ApiResponse<null>>('/cart');
+      if (response.status === 204) return;
+      if (!response.data.success) {
+        throw new Error(response.data.error?.message || 'Failed to clear cart');
+      }
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.status === 204) return;
+      throw err;
     }
   },
 

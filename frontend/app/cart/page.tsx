@@ -5,53 +5,90 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import localCartService, { LocalCartItem } from '@/services/localCart.service';
+import cartService from '@/services/cart.service';
+import { CartItem } from '@/types';
 
 export default function CartPage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
-  const [items, setItems] = useState<LocalCartItem[]>([]);
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const [localItems, setLocalItems] = useState<LocalCartItem[]>([]);
+  const [serverItems, setServerItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadCart();
-  }, []);
+    if (!authLoading) {
+      loadCart();
+    }
+  }, [authLoading, isAuthenticated]);
 
-  const loadCart = () => {
-    const cart = localCartService.getCart();
-    setItems(cart);
-    setIsLoading(false);
+  const loadCart = async () => {
+    setIsLoading(true);
+    try {
+      if (isAuthenticated) {
+        const serverCart = await cartService.getCart();
+        setServerItems(serverCart);
+      } else {
+        const cart = localCartService.getCart();
+        setLocalItems(cart);
+      }
+    } catch (err) {
+      console.error('Error loading cart:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleUpdateQuantity = (productId: number, quantity: number) => {
+  const handleUpdateQuantityLocal = (productId: number, quantity: number) => {
     if (quantity < 1) return;
     localCartService.updateQuantity(productId, quantity);
     loadCart();
   };
 
-  const handleRemoveItem = (productId: number) => {
+  const handleRemoveItemLocal = (productId: number) => {
     localCartService.removeItem(productId);
     loadCart();
   };
 
+  const handleUpdateQuantityServer = async (productId: number, quantity: number) => {
+    if (quantity < 1) return;
+    try {
+      await cartService.updateItem(productId, { quantity });
+      loadCart();
+    } catch (err) {
+      console.error('Error updating quantity:', err);
+    }
+  };
+
+  const handleRemoveItemServer = async (productId: number) => {
+    try {
+      await cartService.removeItem(productId);
+      loadCart();
+    } catch (err) {
+      console.error('Error removing item:', err);
+    }
+  };
+
   const handleCheckout = () => {
     if (!isAuthenticated) {
-      // Guardar carrito antes de ir al login
       router.push('/login?redirect=/cart');
     } else {
-      // Usuario autenticado, crear pedido
       router.push('/checkout');
     }
   };
 
-  const total = localCartService.getTotal();
+  const localTotal = localCartService.getTotal();
+  const serverTotal = serverItems.reduce((sum, item) => sum + (Number(item.product.price) * item.quantity), 0);
+  const total = isAuthenticated ? serverTotal : localTotal;
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-gray-500">Cargando...</div>
       </div>
     );
   }
+
+  const items = isAuthenticated ? serverItems : localItems;
 
   if (items.length === 0) {
     return (
@@ -72,117 +109,183 @@ export default function CartPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8">🛒 Mi Carrito</h1>
+    <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-8">🛒 Mi Carrito</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Lista de productos */}
-        <div className="lg:col-span-2 space-y-4">
-          {items.map((item) => {
-            const itemTotal = item.price * item.quantity;
-            const isOutOfStock = item.stock === 0;
-            const isLowStock = item.stock > 0 && item.stock <= 5;
-            const exceedsStock = item.quantity > item.stock;
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
+        <div className="lg:col-span-2 space-y-3 sm:space-y-4">
+          {isAuthenticated ? (
+            serverItems.map((item) => {
+              const itemTotal = Number(item.product.price) * item.quantity;
+              const isOutOfStock = item.product.stock === 0;
+              const isLowStock = item.product.stock > 0 && item.product.stock <= 5;
+              const exceedsStock = item.quantity > item.product.stock;
 
-            return (
-              <div
-                key={item.productId}
-                className="bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex gap-4">
-                  {/* Imagen */}
-                  <div className="w-24 h-24 flex-shrink-0 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-                    {item.imageUrl ? (
-                      <img
-                        src={item.imageUrl}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-3xl">📦</span>
-                    )}
-                  </div>
+              return (
+                <div
+                  key={item.productId}
+                  className="bg-white rounded-lg shadow-sm border p-3 sm:p-4"
+                >
+                  <div className="flex gap-2 sm:gap-4">
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 flex-shrink-0 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                      {item.product.imageUrl ? (
+                        <img
+                          src={item.product.imageUrl}
+                          alt={item.product.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-2xl">📦</span>
+                      )}
+                    </div>
 
-                  {/* Info */}
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-800">{item.name}</h3>
-                    <p className="text-gray-600 text-sm">
-                      ${item.price.toFixed(2)} c/u
-                    </p>
-                    
-                    {isOutOfStock && (
-                      <p className="text-sm text-red-600 mt-1">⚠️ Sin stock</p>
-                    )}
-                    {!isOutOfStock && isLowStock && (
-                      <p className="text-sm text-orange-600 mt-1">
-                        ⚠️ Solo quedan {item.stock} unidades
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm sm:text-lg font-semibold text-gray-800 truncate">{item.product.name}</h3>
+                      <p className="text-gray-600 text-xs sm:text-sm">
+                        ${Number(item.product.price).toFixed(2)} c/u
                       </p>
-                    )}
-                    {exceedsStock && !isOutOfStock && (
-                      <p className="text-sm text-red-600 mt-1">
-                        ⚠️ Cantidad excede stock disponible ({item.stock})
-                      </p>
-                    )}
+                      
+                      {isOutOfStock && (
+                        <p className="text-xs sm:text-sm text-red-600 mt-1">⚠️ Sin stock</p>
+                      )}
+                      {!isOutOfStock && isLowStock && (
+                        <p className="text-xs sm:text-sm text-orange-600 mt-1">
+                          ⚠️ Solo quedan {item.product.stock}
+                        </p>
+                      )}
 
-                    {/* Controles */}
-                    <div className="flex items-center gap-4 mt-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleUpdateQuantity(item.productId, item.quantity - 1)}
-                          className="w-8 h-8 flex items-center justify-center border rounded-lg hover:bg-gray-100"
-                          disabled={item.quantity <= 1}
-                        >
-                          -
-                        </button>
-                        <span className="w-12 text-center font-medium">{item.quantity}</span>
-                        <button
-                          onClick={() => handleUpdateQuantity(item.productId, item.quantity + 1)}
-                          className="w-8 h-8 flex items-center justify-center border rounded-lg hover:bg-gray-100"
-                          disabled={isOutOfStock || item.quantity >= item.stock}
-                        >
-                          +
-                        </button>
+                      <div className="flex items-center justify-between mt-2 sm:mt-3">
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <button
+                            onClick={() => handleUpdateQuantityServer(item.productId, item.quantity - 1)}
+                            className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center border rounded hover:bg-gray-100"
+                            disabled={item.quantity <= 1}
+                          >
+                            -
+                          </button>
+                          <span className="w-8 sm:w-12 text-center text-sm sm:text-base font-medium">{item.quantity}</span>
+                          <button
+                            onClick={() => handleUpdateQuantityServer(item.productId, item.quantity + 1)}
+                            className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center border rounded hover:bg-gray-100"
+                            disabled={isOutOfStock || item.quantity >= item.product.stock}
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-2 sm:gap-4">
+                          <p className="text-sm sm:text-lg font-bold text-gray-800">
+                            ${itemTotal.toFixed(2)}
+                          </p>
+                          <button
+                            onClick={() => handleRemoveItemServer(item.productId)}
+                            className="text-red-600 hover:text-red-800 text-xs sm:text-sm"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </div>
-
-                      <button
-                        onClick={() => handleRemoveItem(item.productId)}
-                        className="text-red-600 hover:text-red-800 text-sm font-medium"
-                      >
-                        🗑️ Eliminar
-                      </button>
                     </div>
                   </div>
+                </div>
+              );
+            })
+          ) : (
+            localItems.map((item) => {
+              const itemTotal = item.price * item.quantity;
+              const isOutOfStock = item.stock === 0;
+              const isLowStock = item.stock > 0 && item.stock <= 5;
+              const exceedsStock = item.quantity > item.stock;
 
-                  {/* Precio total */}
-                  <div className="text-right">
-                    <p className="text-xl font-bold text-gray-800">
-                      ${itemTotal.toFixed(2)}
-                    </p>
+              return (
+                <div
+                  key={item.productId}
+                  className="bg-white rounded-lg shadow-sm border p-3 sm:p-4"
+                >
+                  <div className="flex gap-2 sm:gap-4">
+                    <div className="w-16 h-16 sm:w-24 sm:h-24 flex-shrink-0 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-2xl">📦</span>
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm sm:text-lg font-semibold text-gray-800 truncate">{item.name}</h3>
+                      <p className="text-gray-600 text-xs sm:text-sm">
+                        ${item.price.toFixed(2)} c/u
+                      </p>
+                      
+                      {isOutOfStock && (
+                        <p className="text-xs sm:text-sm text-red-600 mt-1">⚠️ Sin stock</p>
+                      )}
+                      {!isOutOfStock && isLowStock && (
+                        <p className="text-xs sm:text-sm text-orange-600 mt-1">
+                          ⚠️ Solo quedan {item.stock}
+                        </p>
+                      )}
+
+                      <div className="flex items-center justify-between mt-2 sm:mt-3">
+                        <div className="flex items-center gap-1 sm:gap-2">
+                          <button
+                            onClick={() => handleUpdateQuantityLocal(item.productId, item.quantity - 1)}
+                            className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center border rounded hover:bg-gray-100"
+                            disabled={item.quantity <= 1}
+                          >
+                            -
+                          </button>
+                          <span className="w-8 sm:w-12 text-center text-sm sm:text-base font-medium">{item.quantity}</span>
+                          <button
+                            onClick={() => handleUpdateQuantityLocal(item.productId, item.quantity + 1)}
+                            className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center border rounded hover:bg-gray-100"
+                            disabled={isOutOfStock || item.quantity >= item.stock}
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-2 sm:gap-4">
+                          <p className="text-sm sm:text-lg font-bold text-gray-800">
+                            ${itemTotal.toFixed(2)}
+                          </p>
+                          <button
+                            onClick={() => handleRemoveItemLocal(item.productId)}
+                            className="text-red-600 hover:text-red-800 text-xs sm:text-sm"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
 
-        {/* Resumen */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm border p-6 sticky top-24">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Resumen del Pedido</h2>
+        <div className="lg:col-span-1 order-first lg:order-last">
+          <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6 sticky top-20">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">Resumen</h2>
             
             <div className="space-y-2 mb-4">
-              <div className="flex justify-between text-gray-600">
+              <div className="flex justify-between text-sm sm:text-base text-gray-600">
                 <span>Subtotal</span>
                 <span>${total.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-gray-600">
+              <div className="flex justify-between text-sm sm:text-base text-gray-600">
                 <span>Envío</span>
                 <span>A calcular</span>
               </div>
             </div>
 
-            <div className="border-t pt-4 mb-6">
-              <div className="flex justify-between text-xl font-bold text-gray-800">
+            <div className="border-t pt-3 sm:pt-4 mb-4 sm:mb-6">
+              <div className="flex justify-between text-lg sm:text-xl font-bold text-gray-800">
                 <span>Total</span>
                 <span>${total.toFixed(2)}</span>
               </div>
@@ -190,22 +293,22 @@ export default function CartPage() {
 
             {!isAuthenticated && (
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  💡 Inicia sesión para finalizar tu compra
+                <p className="text-xs sm:text-sm text-blue-800">
+                  💡 Inicia sesión para finalizar
                 </p>
               </div>
             )}
 
             <button
               onClick={handleCheckout}
-              className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all shadow-md hover:shadow-lg"
+              className="w-full bg-gradient-to-r from-pink-500 to-purple-500 text-white py-2 sm:py-3 rounded-lg font-semibold hover:from-pink-600 hover:to-purple-600 transition-all shadow-md text-sm sm:text-base"
             >
-              {isAuthenticated ? '✓ Confirmar Pedido' : '🔐 Iniciar Sesión y Comprar'}
+              {isAuthenticated ? '✓ Confirmar Pedido' : '🔐 Iniciar Sesión'}
             </button>
 
             <Link
               href="/products"
-              className="block text-center text-gray-600 hover:text-gray-800 mt-4 text-sm"
+              className="block text-center text-gray-600 hover:text-gray-800 mt-3 sm:mt-4 text-xs sm:text-sm"
             >
               ← Seguir comprando
             </Link>

@@ -15,13 +15,13 @@ export async function getCartController(req, res, next) {
 export async function addToCartController(req, res, next) {
     try {
         const userId = req.user.userId;
-        const { variantId, quantity } = req.body;
-        if (!variantId || typeof variantId !== 'number' || isNaN(variantId)) {
+        const { productId, quantity } = req.body;
+        if (!productId || typeof productId !== 'number' || isNaN(productId)) {
             res.status(400).json({
                 success: false,
                 error: {
                     code: 'VALIDATION_ERROR',
-                    message: 'Valid variantId is required',
+                    message: 'Valid productId is required',
                 },
             });
             return;
@@ -38,7 +38,7 @@ export async function addToCartController(req, res, next) {
         }
         const cartItem = await addToCart({
             userId,
-            variantId,
+            productId,
             quantity,
         });
         res.status(201).json({
@@ -48,12 +48,12 @@ export async function addToCartController(req, res, next) {
     }
     catch (error) {
         if (error instanceof Error) {
-            if (error.message === 'VARIANT_NOT_FOUND') {
+            if (error.message === 'PRODUCT_NOT_FOUND') {
                 res.status(404).json({
                     success: false,
                     error: {
-                        code: 'VARIANT_NOT_FOUND',
-                        message: 'Variant not found or inactive',
+                        code: 'PRODUCT_NOT_FOUND',
+                        message: 'Product not found or inactive',
                     },
                 });
                 return;
@@ -95,25 +95,25 @@ export async function addToCartController(req, res, next) {
 export async function updateCartItemController(req, res, next) {
     try {
         const userId = req.user.userId;
-        const variantIdParam = req.params.variantId;
-        if (!variantIdParam || typeof variantIdParam !== 'string') {
+        const productIdParam = req.params.productId;
+        if (!productIdParam || typeof productIdParam !== 'string') {
             res.status(400).json({
                 success: false,
                 error: {
                     code: 'VALIDATION_ERROR',
-                    message: 'Invalid variantId parameter',
+                    message: 'Invalid productId parameter',
                 },
             });
             return;
         }
-        const variantId = parseInt(variantIdParam, 10);
+        const productId = parseInt(productIdParam, 10);
         const { quantity } = req.body;
-        if (isNaN(variantId)) {
+        if (isNaN(productId)) {
             res.status(400).json({
                 success: false,
                 error: {
                     code: 'VALIDATION_ERROR',
-                    message: 'Invalid variantId',
+                    message: 'Invalid productId',
                 },
             });
             return;
@@ -128,7 +128,7 @@ export async function updateCartItemController(req, res, next) {
             });
             return;
         }
-        const cartItem = await updateCartItem(userId, variantId, { quantity });
+        const cartItem = await updateCartItem(userId, productId, { quantity });
         res.status(200).json({
             success: true,
             data: cartItem,
@@ -146,12 +146,12 @@ export async function updateCartItemController(req, res, next) {
                 });
                 return;
             }
-            if (error.message === 'VARIANT_NOT_ACTIVE') {
+            if (error.message === 'PRODUCT_NOT_ACTIVE') {
                 res.status(400).json({
                     success: false,
                     error: {
-                        code: 'VARIANT_NOT_ACTIVE',
-                        message: 'Variant is no longer active',
+                        code: 'PRODUCT_NOT_ACTIVE',
+                        message: 'Product is no longer active',
                     },
                 });
                 return;
@@ -183,29 +183,29 @@ export async function updateCartItemController(req, res, next) {
 export async function removeFromCartController(req, res, next) {
     try {
         const userId = req.user.userId;
-        const variantIdParam = req.params.variantId;
-        if (!variantIdParam || typeof variantIdParam !== 'string') {
+        const productIdParam = req.params.productId;
+        if (!productIdParam || typeof productIdParam !== 'string') {
             res.status(400).json({
                 success: false,
                 error: {
                     code: 'VALIDATION_ERROR',
-                    message: 'Invalid variantId parameter',
+                    message: 'Invalid productId parameter',
                 },
             });
             return;
         }
-        const variantId = parseInt(variantIdParam, 10);
-        if (isNaN(variantId)) {
+        const productId = parseInt(productIdParam, 10);
+        if (isNaN(productId)) {
             res.status(400).json({
                 success: false,
                 error: {
                     code: 'VALIDATION_ERROR',
-                    message: 'Invalid variantId',
+                    message: 'Invalid productId',
                 },
             });
             return;
         }
-        await removeFromCart(userId, variantId);
+        await removeFromCart(userId, productId);
         res.status(204).send();
     }
     catch (error) {
