@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
+    "dev": "node_modules/.bin/tsx watch src/server.ts",
     "build": "exit 0",
-    "start": "npx tsx src/server.ts",
+    "start": "node_modules/.bin/tsx src/server.ts",
     "postinstall": "prisma generate"
   },
   "keywords": [],
