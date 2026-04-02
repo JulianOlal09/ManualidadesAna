@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node_modules/.bin/tsx watch src/server.ts",
     "build": "exit 0",
+    "migrate": "node scripts/migrate.js",
     "start": "node_modules/.bin/tsx src/server.ts",
     "postinstall": "prisma generate"
   },
