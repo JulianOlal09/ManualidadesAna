@@ -7,7 +7,7 @@
     "dev": "node_modules/.bin/tsx watch src/server.ts",
     "build": "echo 'Build completed'",
     "migrate": "node scripts/migrate.js",
-    "start": "node scripts/start.js",
+    "start": "sh scripts/start.sh",
     "postinstall": "prisma generate"
   },
   "keywords": [],

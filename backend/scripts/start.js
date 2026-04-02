@@ -1,19 +1,14 @@
-import { execFileSync } from 'node:child_process';
-import { resolve, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { exec } from 'node:child_process';
+import { promisify } from 'node:util';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-// Resolve the Prisma CLI entry point relative to this script
-const prismaCli = resolve(__dirname, '../node_modules/prisma/build/index.js');
+const execAsync = promisify(exec);
 
 console.log('Running prisma db push...');
 
 try {
-  execFileSync(process.execPath, [prismaCli, 'db', 'push', '--skip-generate'], {
-    stdio: 'inherit',
-    env: process.env,
-  });
+  const { stdout, stderr } = await execAsync('npx prisma db push --skip-generate');
+  if (stdout) console.log(stdout);
+  if (stderr) console.error(stderr);
   console.log('prisma db push completed successfully.');
 } catch (error) {
   console.error('prisma db push failed:', error.message);
@@ -22,16 +17,5 @@ try {
 
 console.log('Starting server...');
 
-// Start the server
-try {
-  execFileSync(process.execPath, [
-    resolve(__dirname, '../node_modules/.bin/tsx'),
-    resolve(__dirname, '../src/server.ts')
-  ], {
-    stdio: 'inherit',
-    env: process.env,
-  });
-} catch (error) {
-  console.error('Server failed to start:', error.message);
-  process.exit(1);
-}
+// Import and run the server
+await import('../src/server.ts');
