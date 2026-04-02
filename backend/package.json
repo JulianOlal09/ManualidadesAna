@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "node_modules/.bin/tsx watch src/server.ts",
-    "build": "exit 0",
+    "build": "npm run migrate",
     "migrate": "node scripts/migrate.js",
     "start": "node_modules/.bin/tsx src/server.ts",
     "postinstall": "prisma generate"
