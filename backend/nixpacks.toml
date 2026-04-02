@@ -8,4 +8,4 @@ cmds = ["npm ci"]
 cmds = ["npm run build"]
 
 [start]
-cmd = "npx prisma db push --skip-generate && node --import tsx src/server.ts"
+cmd = "node node_modules/prisma/build/index.js db push --skip-generate && node --import tsx src/server.ts"
