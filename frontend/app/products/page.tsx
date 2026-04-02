@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Product, Category } from '@/types';
 import productService, { categoryService } from '@/services/product.service';
 
-export default function ProductsPage() {
+function ProductsContent() {
   const searchParams = useSearchParams();
   const categoryIdParam = searchParams.get('category');
   
@@ -106,21 +106,21 @@ export default function ProductsPage() {
       </div>
 
       {products.length === 0 ? (
-        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center justify-center min-h-[40vh]">
           <p className="text-gray-500 mb-4">No hay productos en esta categoría</p>
           <Link href="/" className="text-blue-600 hover:underline">
             Volver al inicio
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4 md:gap-6">
           {products.map((product) => (
             <Link
               key={product.id}
               href={`/products/${product.id}`}
               className={`block bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow ${!product.isActive ? 'opacity-60' : ''}`}
             >
-              <div className="aspect-square bg-gray-100 rounded-t-lg flex items-center justify-center">
+              <div className="aspect-square bg-gray-100 rounded-t-lg flex items-center justify-center overflow-hidden">
                 {product.imageUrl ? (
                   <img
                     src={product.imageUrl}
@@ -128,21 +128,21 @@ export default function ProductsPage() {
                     className="w-full h-full object-cover rounded-t-lg"
                   />
                 ) : (
-                  <span className="text-4xl text-gray-300">📦</span>
+                  <span className="text-2xl sm:text-4xl text-gray-300">📦</span>
                 )}
               </div>
-              <div className="p-4">
-                <h2 className="font-semibold text-gray-800 truncate">{product.name}</h2>
+              <div className="p-2 sm:p-4">
+                <h2 className="text-xs sm:text-sm font-semibold text-gray-800 truncate">{product.name}</h2>
                 {product.category && (
-                  <p className="text-sm text-gray-500">{product.category.name}</p>
+                  <p className="text-xs text-gray-500 hidden sm:block">{product.category.name}</p>
                 )}
                 {product.price && (
-                  <p className="text-lg font-bold text-blue-600 mt-2">
+                  <p className="text-sm sm:text-lg font-bold text-blue-600 mt-1">
                     ${Number(product.price).toFixed(2)}
                   </p>
                 )}
                 {product.stock === 0 && (
-                  <p className="text-sm text-red-500 mt-1">Sin stock</p>
+                  <p className="text-xs sm:text-sm text-red-500 mt-1">Sin stock</p>
                 )}
               </div>
             </Link>
@@ -150,5 +150,21 @@ export default function ProductsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function Loading() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="text-gray-500">Cargando productos...</div>
+    </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <ProductsContent />
+    </Suspense>
   );
 }

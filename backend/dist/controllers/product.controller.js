@@ -1,7 +1,9 @@
-import { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct, createVariant, updateVariant, deleteVariant, } from '../services/product.service.js';
-export async function getProductsController(_req, res, next) {
+import { getAllProducts, getProductById, createProduct, updateProduct, deleteProduct, toggleProductActive, calculateSuggestedPrice, } from '../services/product.service.js';
+export async function getProductsController(req, res, next) {
     try {
-        const products = await getAllProducts();
+        const categoryIdParam = req.query.categoryId;
+        const categoryId = categoryIdParam ? parseInt(categoryIdParam, 10) : undefined;
+        const products = await getAllProducts(categoryId);
         res.status(200).json({
             success: true,
             data: products,
@@ -57,7 +59,7 @@ export async function getProductController(req, res, next) {
 }
 export async function createProductController(req, res, next) {
     try {
-        const { name, description, categoryId, imageUrl } = req.body;
+        const { name, description, categoryId, imageUrl, price, sku, stock } = req.body;
         if (!name || typeof name !== 'string' || name.trim().length === 0) {
             res.status(400).json({
                 success: false,
@@ -79,11 +81,16 @@ export async function createProductController(req, res, next) {
             });
             return;
         }
+        const priceNumber = price ? Number(price) : 0;
+        const stockNumber = stock ? Number(stock) : 0;
         const product = await createProduct({
             name: name.trim(),
             description,
             categoryId: categoryIdNumber,
             imageUrl,
+            price: priceNumber,
+            sku,
+            stock: stockNumber,
         });
         res.status(201).json({
             success: true,
@@ -98,6 +105,16 @@ export async function createProductController(req, res, next) {
                     error: {
                         code: 'CATEGORY_NOT_FOUND',
                         message: 'Category not found',
+                    },
+                });
+                return;
+            }
+            if (error.message === 'INVALID_PRICE') {
+                res.status(400).json({
+                    success: false,
+                    error: {
+                        code: 'INVALID_PRICE',
+                        message: 'Price must be positive',
                     },
                 });
                 return;
@@ -130,7 +147,7 @@ export async function updateProductController(req, res, next) {
             });
             return;
         }
-        const { name, description, categoryId, imageUrl } = req.body;
+        const { name, description, categoryId, imageUrl, price, sku, stock, marginPercentage } = req.body;
         const updateData = {};
         if (name !== undefined) {
             if (typeof name !== 'string' || name.trim().length === 0) {
@@ -167,6 +184,50 @@ export async function updateProductController(req, res, next) {
         }
         if (imageUrl !== undefined)
             updateData.imageUrl = imageUrl;
+        if (price !== undefined) {
+            const priceNumber = Number(price);
+            if (isNaN(priceNumber)) {
+                res.status(400).json({
+                    success: false,
+                    error: {
+                        code: 'VALIDATION_ERROR',
+                        message: 'Invalid price',
+                    },
+                });
+                return;
+            }
+            updateData.price = priceNumber;
+        }
+        if (sku !== undefined)
+            updateData.sku = sku;
+        if (stock !== undefined) {
+            const stockNumber = Number(stock);
+            if (isNaN(stockNumber)) {
+                res.status(400).json({
+                    success: false,
+                    error: {
+                        code: 'VALIDATION_ERROR',
+                        message: 'Invalid stock',
+                    },
+                });
+                return;
+            }
+            updateData.stock = stockNumber;
+        }
+        if (marginPercentage !== undefined) {
+            const marginNumber = Number(marginPercentage);
+            if (isNaN(marginNumber)) {
+                res.status(400).json({
+                    success: false,
+                    error: {
+                        code: 'VALIDATION_ERROR',
+                        message: 'Invalid marginPercentage',
+                    },
+                });
+                return;
+            }
+            updateData.marginPercentage = marginNumber;
+        }
         const product = await updateProduct(id, updateData);
         res.status(200).json({
             success: true,
@@ -191,6 +252,26 @@ export async function updateProductController(req, res, next) {
                     error: {
                         code: 'CATEGORY_NOT_FOUND',
                         message: 'Category not found',
+                    },
+                });
+                return;
+            }
+            if (error.message === 'INVALID_PRICE') {
+                res.status(400).json({
+                    success: false,
+                    error: {
+                        code: 'INVALID_PRICE',
+                        message: 'Price must be positive',
+                    },
+                });
+                return;
+            }
+            if (error.message === 'INVALID_STOCK') {
+                res.status(400).json({
+                    success: false,
+                    error: {
+                        code: 'INVALID_STOCK',
+                        message: 'Stock cannot be negative',
                     },
                 });
                 return;
@@ -242,10 +323,10 @@ export async function deleteProductController(req, res, next) {
         next(error);
     }
 }
-export async function createVariantController(req, res, next) {
+export async function toggleProductActiveController(req, res, next) {
     try {
-        const productIdParam = req.params.id;
-        if (!productIdParam || typeof productIdParam !== 'string') {
+        const idParam = req.params.id;
+        if (!idParam || typeof idParam !== 'string') {
             res.status(400).json({
                 success: false,
                 error: {
@@ -255,8 +336,8 @@ export async function createVariantController(req, res, next) {
             });
             return;
         }
-        const productId = parseInt(productIdParam, 10);
-        if (isNaN(productId)) {
+        const id = parseInt(idParam, 10);
+        if (isNaN(id)) {
             res.status(400).json({
                 success: false,
                 error: {
@@ -266,74 +347,15 @@ export async function createVariantController(req, res, next) {
             });
             return;
         }
-        const { name, sku, price, stock } = req.body;
-        if (!name || typeof name !== 'string' || name.trim().length === 0) {
-            res.status(400).json({
-                success: false,
-                error: {
-                    code: 'VALIDATION_ERROR',
-                    message: 'Name is required',
-                },
-            });
-            return;
-        }
-        if (price === undefined || stock === undefined) {
-            res.status(400).json({
-                success: false,
-                error: {
-                    code: 'VALIDATION_ERROR',
-                    message: 'Price and stock are required',
-                },
-            });
-            return;
-        }
-        const priceNumber = Number(price);
-        const stockNumber = Number(stock);
-        if (isNaN(priceNumber) || isNaN(stockNumber)) {
-            res.status(400).json({
-                success: false,
-                error: {
-                    code: 'VALIDATION_ERROR',
-                    message: 'Price and stock must be valid numbers',
-                },
-            });
-            return;
-        }
-        const variant = await createVariant({
-            productId,
-            name: name.trim(),
-            sku,
-            price: priceNumber,
-            stock: stockNumber,
-        });
-        res.status(201).json({
+        const product = await toggleProductActive(id);
+        res.status(200).json({
             success: true,
-            data: variant,
+            data: product,
         });
     }
     catch (error) {
         if (error instanceof Error) {
-            if (error.message === 'INVALID_PRICE') {
-                res.status(400).json({
-                    success: false,
-                    error: {
-                        code: 'INVALID_PRICE',
-                        message: 'Price must be positive',
-                    },
-                });
-                return;
-            }
-            if (error.message === 'INVALID_STOCK') {
-                res.status(400).json({
-                    success: false,
-                    error: {
-                        code: 'INVALID_STOCK',
-                        message: 'Stock cannot be negative',
-                    },
-                });
-                return;
-            }
-            if (error.message === 'PRODUCT_NOT_FOUND') {
+            if (error.message === 'NOT_FOUND') {
                 res.status(404).json({
                     success: false,
                     error: {
@@ -347,7 +369,7 @@ export async function createVariantController(req, res, next) {
         next(error);
     }
 }
-export async function updateVariantController(req, res, next) {
+export async function getSuggestedPriceController(req, res, next) {
     try {
         const idParam = req.params.id;
         if (!idParam || typeof idParam !== 'string') {
@@ -355,7 +377,7 @@ export async function updateVariantController(req, res, next) {
                 success: false,
                 error: {
                     code: 'VALIDATION_ERROR',
-                    message: 'Invalid variant ID parameter',
+                    message: 'Invalid product ID parameter',
                 },
             });
             return;
@@ -366,60 +388,15 @@ export async function updateVariantController(req, res, next) {
                 success: false,
                 error: {
                     code: 'VALIDATION_ERROR',
-                    message: 'Invalid variant ID',
+                    message: 'Invalid product ID',
                 },
             });
             return;
         }
-        const { name, sku, price, stock } = req.body;
-        const updateData = {};
-        if (name !== undefined) {
-            if (typeof name !== 'string' || name.trim().length === 0) {
-                res.status(400).json({
-                    success: false,
-                    error: {
-                        code: 'VALIDATION_ERROR',
-                        message: 'Name cannot be empty',
-                    },
-                });
-                return;
-            }
-            updateData.name = name.trim();
-        }
-        if (sku !== undefined)
-            updateData.sku = sku;
-        if (price !== undefined) {
-            const priceNumber = Number(price);
-            if (isNaN(priceNumber)) {
-                res.status(400).json({
-                    success: false,
-                    error: {
-                        code: 'VALIDATION_ERROR',
-                        message: 'Price must be a valid number',
-                    },
-                });
-                return;
-            }
-            updateData.price = priceNumber;
-        }
-        if (stock !== undefined) {
-            const stockNumber = Number(stock);
-            if (isNaN(stockNumber)) {
-                res.status(400).json({
-                    success: false,
-                    error: {
-                        code: 'VALIDATION_ERROR',
-                        message: 'Stock must be a valid number',
-                    },
-                });
-                return;
-            }
-            updateData.stock = stockNumber;
-        }
-        const variant = await updateVariant(id, updateData);
+        const result = await calculateSuggestedPrice(id);
         res.status(200).json({
             success: true,
-            data: variant,
+            data: result,
         });
     }
     catch (error) {
@@ -429,70 +406,7 @@ export async function updateVariantController(req, res, next) {
                     success: false,
                     error: {
                         code: 'NOT_FOUND',
-                        message: 'Variant not found',
-                    },
-                });
-                return;
-            }
-            if (error.message === 'INVALID_PRICE') {
-                res.status(400).json({
-                    success: false,
-                    error: {
-                        code: 'INVALID_PRICE',
-                        message: 'Price must be positive',
-                    },
-                });
-                return;
-            }
-            if (error.message === 'INVALID_STOCK') {
-                res.status(400).json({
-                    success: false,
-                    error: {
-                        code: 'INVALID_STOCK',
-                        message: 'Stock cannot be negative',
-                    },
-                });
-                return;
-            }
-        }
-        next(error);
-    }
-}
-export async function deleteVariantController(req, res, next) {
-    try {
-        const idParam = req.params.id;
-        if (!idParam || typeof idParam !== 'string') {
-            res.status(400).json({
-                success: false,
-                error: {
-                    code: 'VALIDATION_ERROR',
-                    message: 'Invalid variant ID parameter',
-                },
-            });
-            return;
-        }
-        const id = parseInt(idParam, 10);
-        if (isNaN(id)) {
-            res.status(400).json({
-                success: false,
-                error: {
-                    code: 'VALIDATION_ERROR',
-                    message: 'Invalid variant ID',
-                },
-            });
-            return;
-        }
-        await deleteVariant(id);
-        res.status(204).send();
-    }
-    catch (error) {
-        if (error instanceof Error) {
-            if (error.message === 'NOT_FOUND') {
-                res.status(404).json({
-                    success: false,
-                    error: {
-                        code: 'NOT_FOUND',
-                        message: 'Variant not found',
+                        message: 'Product not found',
                     },
                 });
                 return;

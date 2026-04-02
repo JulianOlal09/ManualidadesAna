@@ -6,11 +6,7 @@ export async function createOrderFromCart(input) {
         const cartItems = await tx.cartItem.findMany({
             where: { userId },
             include: {
-                variant: {
-                    include: {
-                        product: true,
-                    },
-                },
+                product: true,
             },
         });
         if (cartItems.length === 0) {
@@ -18,24 +14,17 @@ export async function createOrderFromCart(input) {
         }
         const errors = [];
         for (const item of cartItems) {
-            if (!item.variant.product.isActive) {
+            if (!item.product.isActive) {
                 errors.push({
-                    variantId: item.variantId,
-                    message: `Product "${item.variant.product.name}" is no longer active`,
+                    productId: item.productId,
+                    message: `Product "${item.product.name}" is no longer active`,
                 });
                 continue;
             }
-            if (!item.variant.isActive) {
+            if (item.product.stock < item.quantity) {
                 errors.push({
-                    variantId: item.variantId,
-                    message: `Variant "${item.variant.name}" is no longer active`,
-                });
-                continue;
-            }
-            if (item.variant.stock < item.quantity) {
-                errors.push({
-                    variantId: item.variantId,
-                    message: `Insufficient stock for "${item.variant.name}". Available: ${item.variant.stock}, Requested: ${item.quantity}`,
+                    productId: item.productId,
+                    message: `Insufficient stock for "${item.product.name}". Available: ${item.product.stock}, Requested: ${item.quantity}`,
                 });
             }
         }
@@ -44,7 +33,7 @@ export async function createOrderFromCart(input) {
         }
         let totalAmount = 0;
         for (const item of cartItems) {
-            const price = Number(item.variant.price);
+            const price = Number(item.product.price);
             totalAmount += price * item.quantity;
         }
         const order = await tx.order.create({
@@ -56,16 +45,16 @@ export async function createOrderFromCart(input) {
         });
         const orderItemsData = cartItems.map((item) => ({
             orderId: order.id,
-            variantId: item.variantId,
+            productId: item.productId,
             quantity: item.quantity,
-            priceAtPurchase: item.variant.price,
+            priceAtPurchase: item.product.price,
         }));
         await tx.orderItem.createMany({
             data: orderItemsData,
         });
         for (const item of cartItems) {
-            await tx.variant.update({
-                where: { id: item.variantId },
+            await tx.product.update({
+                where: { id: item.productId },
                 data: {
                     stock: {
                         decrement: item.quantity,
@@ -81,11 +70,7 @@ export async function createOrderFromCart(input) {
             include: {
                 items: {
                     include: {
-                        variant: {
-                            include: {
-                                product: true,
-                            },
-                        },
+                        product: true,
                     },
                 },
                 user: {
@@ -109,11 +94,7 @@ export async function getOrdersByUser(userId) {
         include: {
             items: {
                 include: {
-                    variant: {
-                        include: {
-                            product: true,
-                        },
-                    },
+                    product: true,
                 },
             },
         },
@@ -130,11 +111,7 @@ export async function getOrderById(orderId, userId) {
         include: {
             items: {
                 include: {
-                    variant: {
-                        include: {
-                            product: true,
-                        },
-                    },
+                    product: true,
                 },
             },
             user: {
@@ -152,11 +129,7 @@ export async function getAllOrders() {
         include: {
             items: {
                 include: {
-                    variant: {
-                        include: {
-                            product: true,
-                        },
-                    },
+                    product: true,
                 },
             },
             user: {
@@ -172,25 +145,44 @@ export async function getAllOrders() {
 }
 export async function updateOrderStatus(orderId, input) {
     const { status } = input;
-    const existingOrder = await prisma.order.findUnique({
-        where: { id: orderId },
-    });
-    if (!existingOrder) {
-        throw new Error('ORDER_NOT_FOUND');
-    }
-    const validTransitions = {
-        PENDIENTE: [OrderStatus.ENVIADO, OrderStatus.CANCELADO],
-        ENVIADO: [OrderStatus.ENTREGADO, OrderStatus.CANCELADO],
-        ENTREGADO: [],
-        CANCELADO: [],
-    };
-    const allowedStatuses = validTransitions[existingOrder.status];
-    if (!allowedStatuses.includes(status)) {
-        throw new Error('INVALID_STATUS_TRANSITION');
-    }
-    return prisma.order.update({
-        where: { id: orderId },
-        data: { status },
+    return await prisma.$transaction(async (tx) => {
+        const existingOrder = await tx.order.findUnique({
+            where: { id: orderId },
+            include: {
+                items: true,
+            },
+        });
+        if (!existingOrder) {
+            throw new Error('ORDER_NOT_FOUND');
+        }
+        const validTransitions = {
+            PENDIENTE: [OrderStatus.ENVIADO, OrderStatus.CANCELADO],
+            ENVIADO: [OrderStatus.ENTREGADO, OrderStatus.CANCELADO],
+            ENTREGADO: [],
+            CANCELADO: [],
+        };
+        const allowedStatuses = validTransitions[existingOrder.status];
+        if (!allowedStatuses.includes(status)) {
+            throw new Error('INVALID_STATUS_TRANSITION');
+        }
+        if (status === OrderStatus.CANCELADO) {
+            for (const item of existingOrder.items) {
+                if (item.productId) {
+                    await tx.product.update({
+                        where: { id: item.productId },
+                        data: {
+                            stock: {
+                                increment: item.quantity,
+                            },
+                        },
+                    });
+                }
+            }
+        }
+        return tx.order.update({
+            where: { id: orderId },
+            data: { status },
+        });
     });
 }
 export async function getOrderStats() {

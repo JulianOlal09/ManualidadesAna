@@ -1,4 +1,4 @@
-import { getAllInventory, getVariantInventory, adjustStock, getLowStockAlerts, getInventoryStats, } from '../services/inventory.service.js';
+import { getAllInventory, getProductInventory, adjustStock, getLowStockAlerts, getInventoryStats, } from '../services/inventory.service.js';
 export async function getInventoryController(_req, res, next) {
     try {
         const inventory = await getAllInventory();
@@ -11,44 +11,44 @@ export async function getInventoryController(_req, res, next) {
         next(error);
     }
 }
-export async function getVariantInventoryController(req, res, next) {
+export async function getProductInventoryController(req, res, next) {
     try {
-        const variantIdParam = req.params.variantId;
-        if (!variantIdParam || typeof variantIdParam !== 'string') {
+        const productIdParam = req.params.productId;
+        if (!productIdParam || typeof productIdParam !== 'string') {
             res.status(400).json({
                 success: false,
                 error: {
                     code: 'VALIDATION_ERROR',
-                    message: 'Invalid variantId parameter',
+                    message: 'Invalid productId parameter',
                 },
             });
             return;
         }
-        const variantId = parseInt(variantIdParam, 10);
-        if (isNaN(variantId)) {
+        const productId = parseInt(productIdParam, 10);
+        if (isNaN(productId)) {
             res.status(400).json({
                 success: false,
                 error: {
                     code: 'VALIDATION_ERROR',
-                    message: 'Invalid variantId',
+                    message: 'Invalid productId',
                 },
             });
             return;
         }
-        const variant = await getVariantInventory(variantId);
-        if (!variant) {
+        const product = await getProductInventory(productId);
+        if (!product) {
             res.status(404).json({
                 success: false,
                 error: {
-                    code: 'VARIANT_NOT_FOUND',
-                    message: 'Variant not found',
+                    code: 'PRODUCT_NOT_FOUND',
+                    message: 'Product not found',
                 },
             });
             return;
         }
         res.status(200).json({
             success: true,
-            data: variant,
+            data: product,
         });
     }
     catch (error) {
@@ -57,24 +57,24 @@ export async function getVariantInventoryController(req, res, next) {
 }
 export async function adjustStockController(req, res, next) {
     try {
-        const variantIdParam = req.params.variantId;
-        if (!variantIdParam || typeof variantIdParam !== 'string') {
+        const productIdParam = req.params.productId;
+        if (!productIdParam || typeof productIdParam !== 'string') {
             res.status(400).json({
                 success: false,
                 error: {
                     code: 'VALIDATION_ERROR',
-                    message: 'Invalid variantId parameter',
+                    message: 'Invalid productId parameter',
                 },
             });
             return;
         }
-        const variantId = parseInt(variantIdParam, 10);
-        if (isNaN(variantId)) {
+        const productId = parseInt(productIdParam, 10);
+        if (isNaN(productId)) {
             res.status(400).json({
                 success: false,
                 error: {
                     code: 'VALIDATION_ERROR',
-                    message: 'Invalid variantId',
+                    message: 'Invalid productId',
                 },
             });
             return;
@@ -100,30 +100,30 @@ export async function adjustStockController(req, res, next) {
             });
             return;
         }
-        const variant = await adjustStock(variantId, { quantity, operation });
+        const product = await adjustStock(productId, { quantity, operation });
         res.status(200).json({
             success: true,
-            data: variant,
+            data: product,
         });
     }
     catch (error) {
         if (error instanceof Error) {
-            if (error.message === 'VARIANT_NOT_FOUND') {
+            if (error.message === 'PRODUCT_NOT_FOUND') {
                 res.status(404).json({
                     success: false,
                     error: {
-                        code: 'VARIANT_NOT_FOUND',
-                        message: 'Variant not found',
+                        code: 'PRODUCT_NOT_FOUND',
+                        message: 'Product not found',
                     },
                 });
                 return;
             }
-            if (error.message === 'VARIANT_NOT_ACTIVE') {
+            if (error.message === 'PRODUCT_NOT_ACTIVE') {
                 res.status(400).json({
                     success: false,
                     error: {
-                        code: 'VARIANT_NOT_ACTIVE',
-                        message: 'Variant is not active',
+                        code: 'PRODUCT_NOT_ACTIVE',
+                        message: 'Product is not active',
                     },
                 });
                 return;

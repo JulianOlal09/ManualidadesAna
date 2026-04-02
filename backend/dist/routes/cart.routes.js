@@ -6,8 +6,8 @@ router.use(verifyTokenMiddleware);
 router.get('/cart', getCartController);
 router.get('/cart/validate', validateCartController);
 router.post('/cart/items', addToCartController);
-router.put('/cart/items/:variantId', updateCartItemController);
-router.delete('/cart/items/:variantId', removeFromCartController);
+router.put('/cart/items/:productId', updateCartItemController);
+router.delete('/cart/items/:productId', removeFromCartController);
 router.delete('/cart', clearCartController);
 export default router;
 //# sourceMappingURL=cart.routes.js.map
