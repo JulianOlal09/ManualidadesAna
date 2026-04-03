@@ -13,6 +13,23 @@ const s3Client = new S3Client({
 
 const BUCKET_NAME = process.env.BUCKET_NAME || 'manualidades-ana';
 
+// Derive the public base URL for serving stored objects.
+// Priority:
+//   1. BUCKET_PUBLIC_URL  — explicit override (e.g. a custom CDN domain)
+//   2. Constructed from BUCKET_ENDPOINT host using the Railway/Tigris public
+//      URL pattern: https://{bucket}.{endpoint-host}
+//      e.g. BUCKET_ENDPOINT=https://t3.storageapi.dev
+//           → https://manualidades-ana.t3.storageapi.dev
+function getPublicBaseUrl(): string {
+  if (process.env.BUCKET_PUBLIC_URL) {
+    return process.env.BUCKET_PUBLIC_URL.replace(/\/$/, '');
+  }
+
+  const endpoint = process.env.BUCKET_ENDPOINT || '';
+  const endpointHost = endpoint.replace(/^https?:\/\//, '');
+  return `https://${BUCKET_NAME}.${endpointHost}`;
+}
+
 export async function uploadImage(file: Buffer, originalFilename: string): Promise<string> {
   const ext = originalFilename.split('.').pop() || 'jpg';
   const key = `products/${uuidv4()}.${ext}`;
@@ -26,7 +43,7 @@ export async function uploadImage(file: Buffer, originalFilename: string): Promi
     })
   );
 
-  return `${process.env.BUCKET_ENDPOINT}/${BUCKET_NAME}/${key}`;
+  return `${getPublicBaseUrl()}/${key}`;
 }
 
 export async function deleteImage(imageUrl: string): Promise<void> {
@@ -44,5 +61,5 @@ export async function deleteImage(imageUrl: string): Promise<void> {
 }
 
 export function getImageUrl(key: string): string {
-  return `${process.env.BUCKET_ENDPOINT}/${BUCKET_NAME}/${key}`;
+  return `${getPublicBaseUrl()}/${key}`;
 }
