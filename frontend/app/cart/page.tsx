@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import localCartService, { LocalCartItem } from '@/services/localCart.service';
 import cartService from '@/services/cart.service';
 import { CartItem } from '@/types';
+import AuthModal from '@/components/auth/AuthModal';
 
 export default function CartPage() {
   const router = useRouter();
@@ -14,12 +15,19 @@ export default function CartPage() {
   const [localItems, setLocalItems] = useState<LocalCartItem[]>([]);
   const [serverItems, setServerItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading) {
       loadCart();
     }
   }, [authLoading, isAuthenticated]);
+
+  useEffect(() => {
+    const handleCartUpdate = () => loadCart();
+    window.addEventListener('cart-updated', handleCartUpdate);
+    return () => window.removeEventListener('cart-updated', handleCartUpdate);
+  }, [isAuthenticated]);
 
   const loadCart = async () => {
     setIsLoading(true);
@@ -70,7 +78,7 @@ export default function CartPage() {
 
   const handleCheckout = () => {
     if (!isAuthenticated) {
-      router.push('/login?redirect=/cart');
+      setAuthModalOpen(true);
     } else {
       router.push('/checkout');
     }
@@ -315,6 +323,12 @@ export default function CartPage() {
           </div>
         </div>
       </div>
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        initialMode="login"
+      />
     </div>
   );
 }

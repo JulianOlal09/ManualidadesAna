@@ -16,20 +16,82 @@ export interface InventoryAlert {
   minStock: number;
 }
 
+export interface InventoryFilters {
+  search?: string;
+  categoryId?: number;
+  stockStatus?: 'all' | 'out' | 'low' | 'in';
+}
+
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}
+
+export interface PaginatedInventory {
+  data: ProductWithCategory[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 const LOW_STOCK_THRESHOLD = 5;
 
-export async function getAllInventory(): Promise<ProductWithCategory[]> {
-  return prisma.product.findMany({
-    where: {
-      isActive: true,
-    },
-    include: {
-      category: true,
-    },
-    orderBy: {
-      stock: 'asc',
-    },
-  }) as Promise<ProductWithCategory[]>;
+export async function getAllInventory(
+  filters?: InventoryFilters,
+  pagination?: PaginationParams
+): Promise<PaginatedInventory> {
+  const { search, categoryId, stockStatus } = filters || {};
+  const { page = 1, limit = 25 } = pagination || {};
+  const skip = (page - 1) * limit;
+
+  const where: any = {
+    isActive: true,
+  };
+
+  if (search) {
+    where.OR = [
+      { name: { contains: search } },
+      { sku: { contains: search } },
+    ];
+  }
+
+  if (categoryId) {
+    where.categoryId = categoryId;
+  }
+
+  if (stockStatus && stockStatus !== 'all') {
+    if (stockStatus === 'out') {
+      where.stock = { lte: 0 };
+    } else if (stockStatus === 'low') {
+      where.stock = { gt: 0, lte: LOW_STOCK_THRESHOLD };
+    } else if (stockStatus === 'in') {
+      where.stock = { gt: LOW_STOCK_THRESHOLD };
+    }
+  }
+
+  const [data, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: {
+        category: true,
+      },
+      orderBy: {
+        stock: 'asc',
+      },
+      skip,
+      take: limit,
+    }),
+    prisma.product.count({ where }),
+  ]);
+
+  return {
+    data: data as ProductWithCategory[],
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export async function getProductInventory(productId: number): Promise<ProductWithCategory | null> {

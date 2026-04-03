@@ -80,3 +80,76 @@ export async function getUserById(userId: number): Promise<Omit<User, 'password'
   const { password: _, ...userWithoutPassword } = user;
   return userWithoutPassword;
 }
+
+export interface UpdateUserInput {
+  name?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
+export async function updateUser(userId: number, input: UpdateUserInput): Promise<Omit<User, 'password'>> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new Error('USER_NOT_FOUND');
+  }
+
+  if (input.email && input.email !== user.email) {
+    const existingEmail = await prisma.user.findUnique({
+      where: { email: input.email },
+    });
+    if (existingEmail) {
+      throw new Error('EMAIL_ALREADY_EXISTS');
+    }
+  }
+
+  if (input.currentPassword && input.newPassword) {
+    const validPassword = await bcrypt.compare(input.currentPassword, user.password);
+    if (!validPassword) {
+      throw new Error('INVALID_CURRENT_PASSWORD');
+    }
+  }
+
+  const updateData: Partial<{ name: string; email: string; password: string }> = {};
+
+  if (input.name) {
+    updateData.name = input.name;
+  }
+  if (input.email) {
+    updateData.email = input.email;
+  }
+  if (input.newPassword && input.currentPassword) {
+    updateData.password = await bcrypt.hash(input.newPassword, 10);
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: updateData,
+  });
+
+  const { password: _, ...userWithoutPassword } = updatedUser;
+  return userWithoutPassword;
+}
+
+export async function deleteUser(userId: number, password: string): Promise<void> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new Error('USER_NOT_FOUND');
+  }
+
+  const validPassword = await bcrypt.compare(password, user.password);
+  if (!validPassword) {
+    throw new Error('INVALID_PASSWORD');
+  }
+
+  await prisma.user.update({
+    where: { id: userId },
+    data: { email: `deleted_${user.id}_${Date.now()}@deleted.com`, name: 'Usuario eliminado' },
+  });
+}

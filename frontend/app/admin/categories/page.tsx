@@ -113,16 +113,12 @@ export default function AdminCategoriesPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Gestión de Categorías</h1>
-        <div className="flex gap-2">
-          <Link href="/admin" className="text-blue-600 hover:underline">← Panel</Link>
-          <Link href="/admin/products" className="text-blue-600 hover:underline">Productos →</Link>
-        </div>
       </div>
 
       {error && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-md text-sm">{error}</div>}
       {success && <div className="mb-4 p-3 bg-green-50 text-green-600 rounded-md text-sm">{success}</div>}
 
-      <button onClick={openCreateCategory} className="mb-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+      <button onClick={openCreateCategory} className="mb-4 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-blue-700">
         + Nueva Categoría
       </button>
 
@@ -172,7 +168,7 @@ export default function AdminCategoriesPage() {
 
       {/* Modal: Crear / Editar Categoría */}
       {(modalMode === 'createCategory' || modalMode === 'editCategory') && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
             <h2 className="text-xl font-bold mb-4">
               {modalMode === 'createCategory' && 'Nueva Categoría'}
@@ -203,7 +199,7 @@ export default function AdminCategoriesPage() {
                 <button
                   onClick={handleSaveCategory}
                   disabled={isSaving || !categoryForm.name}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                  className="flex-1 px-4 py-2 bg-pink-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
                   {isSaving ? 'Guardando...' : 'Guardar'}
                 </button>

@@ -7,6 +7,8 @@ import {
   getOrderByIdController,
   updateOrderStatusController,
   getOrderStatsController,
+  updateOrderItemsController,
+  cancelOrderController,
 } from '../controllers/order.controller.js';
 import { verifyTokenMiddleware, requireRole } from '../middlewares/auth.middleware.js';
 import { Role } from '@prisma/client';
@@ -27,6 +29,12 @@ router.get('/orders', getUserOrdersController);
 // GET /api/orders/:id - Ver detalle de pedido del usuario
 router.get('/orders/:id', getUserOrderController);
 
+// PUT /api/orders/:id - Actualizar items del pedido
+router.put('/orders/:id', updateOrderItemsController);
+
+// DELETE /api/orders/:id - Cancelar pedido
+router.delete('/orders/:id', cancelOrderController);
+
 // ==================== RUTAS DE ADMIN ====================
 
 // GET /api/admin/orders/stats - Estadísticas de pedidos
@@ -38,7 +46,7 @@ router.get('/admin/orders', requireRole(Role.ADMIN), getAllOrdersController);
 // GET /api/admin/orders/:id - Ver cualquier pedido por ID (admin override)
 router.get('/admin/orders/:id', requireRole(Role.ADMIN), getOrderByIdController);
 
-// PUT /api/orders/:id/status - Actualizar estado de pedido
-router.put('/orders/:id/status', requireRole(Role.ADMIN), updateOrderStatusController);
+// PUT /api/admin/orders/:id/status - Actualizar estado de pedido
+router.put('/admin/orders/:id/status', requireRole(Role.ADMIN), updateOrderStatusController);
 
 export default router;

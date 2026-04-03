@@ -100,7 +100,6 @@ export default function AdminSuppliesPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Gestión de Insumos</h1>
-        <Link href="/admin" className="text-blue-600 hover:underline">← Panel</Link>
       </div>
 
       {error && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-md text-sm">{error}</div>}
@@ -137,7 +136,7 @@ export default function AdminSuppliesPage() {
       )}
 
       {modalMode && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
             <h2 className="text-xl font-bold mb-4">
               {modalMode === 'createSupply' && 'Nuevo Insumo'}

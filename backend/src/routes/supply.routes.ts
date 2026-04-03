@@ -2,6 +2,7 @@ import { Router } from 'express';
 import {
   getSuppliesController,
   getSupplyController,
+  getSupplyStatsController,
   createSupplyController,
   updateSupplyController,
   deleteSupplyController,
@@ -15,6 +16,7 @@ router.use(verifyTokenMiddleware);
 router.use(requireRole(Role.ADMIN));
 
 router.get('/admin/supplies', getSuppliesController);
+router.get('/admin/supplies/stats', getSupplyStatsController);
 router.get('/admin/supplies/:id', getSupplyController);
 router.post('/admin/supplies', createSupplyController);
 router.put('/admin/supplies/:id', updateSupplyController);

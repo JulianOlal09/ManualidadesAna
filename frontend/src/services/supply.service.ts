@@ -25,6 +25,14 @@ export const supplyService = {
     throw new Error(response.data.error?.message || 'Failed to fetch supplies');
   },
 
+  async getStats(): Promise<{ totalSupplies: number; totalCost: number }> {
+    const response = await apiClient.get<ApiResponse<{ totalSupplies: number; totalCost: number }>>('/admin/supplies/stats');
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    throw new Error(response.data.error?.message || 'Failed to fetch supply stats');
+  },
+
   async getById(id: number): Promise<Supply> {
     const response = await apiClient.get<ApiResponse<Supply>>(`/admin/supplies/${id}`);
     if (response.data.success && response.data.data) {

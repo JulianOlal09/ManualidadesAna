@@ -8,6 +8,7 @@ import orderService from '@/services/order.service';
 import inventoryService from '@/services/inventory.service';
 import supplyService from '@/services/supply.service';
 import { useAuth } from '@/context/AuthContext';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function AdminDashboardPage() {
   const [orderStats, setOrderStats] = useState<OrderStats | null>(null);
   const [inventoryStats, setInventoryStats] = useState<{ totalProducts: number; outOfStock: number; lowStock: number; inStock: number } | null>(null);
   const [suppliesCount, setSuppliesCount] = useState<number>(0);
+  const [supplyStats, setSupplyStats] = useState<{ totalSupplies: number; totalCost: number } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -36,14 +38,15 @@ export default function AdminDashboardPage() {
 
   const fetchData = async () => {
     try {
-      const [orders, inventory, supplies] = await Promise.all([
+      const [orders, inventory, suppliesStats] = await Promise.all([
         orderService.getStats(),
         inventoryService.getStats(),
-        supplyService.getAll(),
+        supplyService.getStats(),
       ]);
       setOrderStats(orders);
       setInventoryStats(inventory);
-      setSuppliesCount(supplies.length);
+      setSupplyStats(suppliesStats);
+      setSuppliesCount(suppliesStats.totalSupplies);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar datos');
     } finally {
@@ -63,9 +66,26 @@ export default function AdminDashboardPage() {
     return null;
   }
 
+  // Datos para gráfico de pedidos
+  const orderChartData = [
+    { name: 'Pendientes', cantidad: orderStats?.pendientes || 0, fill: '#f59e0b' },
+    { name: 'Enviados', cantidad: orderStats?.enviados || 0, fill: '#3b82f6' },
+    { name: 'Entregados', cantidad: orderStats?.entregados || 0, fill: '#10b981' },
+    { name: 'Cancelados', cantidad: orderStats?.cancelados || 0, fill: '#ef4444' },
+  ];
+
+  // Datos para gráfico de inventario
+  const inventoryChartData = [
+    { name: 'En Stock', value: inventoryStats?.inStock || 0 },
+    { name: 'Bajo Stock', value: inventoryStats?.lowStock || 0 },
+    { name: 'Sin Stock', value: inventoryStats?.outOfStock || 0 },
+  ];
+
+  const COLORS = ['#10b981', '#f59e0b', '#ef4444'];
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-3xl font-bold text-gray-800 mb-8">Panel de Administración</h1>
+    <>
+      <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4 md:mb-6">Dashboard</h1>
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-md text-sm">
@@ -73,171 +93,250 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
+      {/* KPIs Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-6 md:mb-8">
+        <Link href="/admin/orders" className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 md:p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm font-medium">Pedidos Pendientes</p>
-              <p className="text-4xl font-bold mt-2">{orderStats?.pendientes || 0}</p>
+              <p className="text-blue-100 text-xs md:text-sm font-medium">Pedidos Pendientes</p>
+              <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{orderStats?.pendientes || 0}</p>
             </div>
-            <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 self-center">
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
             </div>
           </div>
-          <div className="mt-4 text-sm text-blue-100">
-            {orderStats?.total || 0} pedidos en total
+          <div className="mt-2 md:mt-3 text-xs text-blue-100">
+            {orderStats?.total || 0} pedidos totales
+          </div>
+        </Link>
+
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 md:p-6 text-white shadow-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-green-100 text-xs md:text-sm font-medium">Ventas Totales</p>
+              <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">${(orderStats?.totalSales || 0).toFixed(2)}</p>
+            </div>
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 self-center">
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M3 18h3m-3-4 3 3-3 3" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-2 md:mt-3 text-xs text-green-100">
+            Ingresos acumulados
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
+        <Link href="/admin/inventory" className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-5 md:p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm font-medium">Productos en Stock</p>
-              <p className="text-4xl font-bold mt-2">{inventoryStats?.inStock || 0}</p>
+              <p className="text-purple-100 text-xs md:text-sm font-medium">Productos en Stock</p>
+              <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{inventoryStats?.inStock || 0}</p>
             </div>
-            <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 self-center">
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
             </div>
           </div>
-          <div className="mt-4 text-sm text-purple-100">
-            {inventoryStats?.outOfStock || 0} sin stock • {inventoryStats?.lowStock || 0} bajo stock
+          <div className="mt-2 md:mt-3 text-xs text-purple-100">
+            {inventoryStats?.outOfStock || 0} sin stock
           </div>
-        </div>
+        </Link>
 
-        <div className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-6 text-white shadow-lg">
+        <Link href="/admin/supplies" className="bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl p-5 md:p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-amber-100 text-sm font-medium">Insumos Registrados</p>
-              <p className="text-4xl font-bold mt-2">{suppliesCount}</p>
+              <p className="text-amber-100 text-xs md:text-sm font-medium">Insumos Registrados</p>
+              <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{suppliesCount}</p>
             </div>
-            <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center">
-              <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 self-center">
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             </div>
           </div>
-          <div className="mt-4 text-sm text-amber-100">
-            Materials disponibles
+          <div className="mt-2 md:mt-3 text-xs text-amber-100">
+            Materiales disponibles
+          </div>
+        </Link>
+
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-5 md:p-6 text-white shadow-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-red-100 text-xs md:text-sm font-medium">Costo Insumos</p>
+              <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">${(supplyStats?.totalCost || 0).toFixed(2)}</p>
+            </div>
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 self-center">
+              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+            </div>
+          </div>
+          <div className="mt-2 md:mt-3 text-xs text-red-100">
+            Costo total inventario
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Gráficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+        {/* Gráfico de barras - Pedidos */}
+        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border">
+          <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-3 md:mb-4">Estado de Pedidos</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={orderChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Bar dataKey="cantidad" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Gráfico circular - Inventario */}
+        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border">
+          <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-3 md:mb-4">Distribución de Inventario</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <PieChart>
+              <Pie
+                data={inventoryChartData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
+                outerRadius={70}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {inventoryChartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Accesos rápidos */}
+      <h2 className="text-lg md:text-xl font-semibold text-gray-800 mb-3 md:mb-4">Accesos Rápidos</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
         <Link
           href="/admin/products"
-          className="block bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow"
+          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-start gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-800">Gestionar Productos</h3>
-              <p className="text-sm text-gray-500">Agrega, edita o elimina productos</p>
+              <h3 className="text-base md:text-lg font-semibold text-gray-800">Productos</h3>
+              <p className="text-xs md:text-sm text-gray-500">Gestionar catálogo de productos</p>
             </div>
           </div>
         </Link>
 
         <Link
           href="/admin/inventory"
-          className="block bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow"
+          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-start gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-800">Gestionar Inventario</h3>
-              <p className="text-sm text-gray-500">Administra el stock de productos</p>
+              <h3 className="text-base md:text-lg font-semibold text-gray-800">Inventario</h3>
+              <p className="text-xs md:text-sm text-gray-500">Control de stock y alertas</p>
             </div>
           </div>
         </Link>
 
         <Link
           href="/admin/categories"
-          className="block bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow"
+          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-pink-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-start gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-pink-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-800">Gestionar Categorías</h3>
-              <p className="text-sm text-gray-500">Administra las categorías</p>
+              <h3 className="text-base md:text-lg font-semibold text-gray-800">Categorías</h3>
+              <p className="text-xs md:text-sm text-gray-500">Organizar productos por tipo</p>
             </div>
           </div>
         </Link>
 
         <Link
           href="/admin/orders"
-          className="block bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow"
+          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-start gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-pink-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-800">Gestionar Pedidos</h3>
-              <p className="text-sm text-gray-500">Administra todos los pedidos</p>
+              <h3 className="text-base md:text-lg font-semibold text-gray-800">Pedidos</h3>
+              <p className="text-xs md:text-sm text-gray-500">Gestionar y procesar pedidos</p>
             </div>
           </div>
         </Link>
 
         <Link
           href="/admin/supplies"
-          className="block bg-white rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow"
+          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-              <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-start gap-3 md:gap-4">
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-800">Gestionar Insumos</h3>
-              <p className="text-sm text-gray-500">Administra materiales y costos</p>
+              <h3 className="text-base md:text-lg font-semibold text-gray-800">Insumos</h3>
+              <p className="text-xs md:text-sm text-gray-500">Control de materiales y costos</p>
             </div>
           </div>
         </Link>
       </div>
 
-      <div className="bg-white rounded-xl p-6 shadow-sm border">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Resumen de Pedidos</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="text-center p-4 bg-gray-50 rounded-lg">
-            <p className="text-2xl font-bold text-gray-800">{orderStats?.total || 0}</p>
-            <p className="text-sm text-gray-500">Total</p>
+      {/* Resumen detallado de pedidos */}
+      <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border">
+        <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-3 md:mb-4">Resumen de Pedidos</h2>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
+          <div className="text-center p-3 md:p-4 bg-gray-50 rounded-lg">
+            <p className="text-xl md:text-2xl font-bold text-gray-800">{orderStats?.total || 0}</p>
+            <p className="text-xs md:text-sm text-gray-500 mt-1">Total</p>
           </div>
-          <div className="text-center p-4 bg-yellow-50 rounded-lg">
-            <p className="text-2xl font-bold text-yellow-600">{orderStats?.pendientes || 0}</p>
-            <p className="text-sm text-gray-500">Pendientes</p>
+          <div className="text-center p-3 md:p-4 bg-yellow-50 rounded-lg">
+            <p className="text-xl md:text-2xl font-bold text-yellow-600">{orderStats?.pendientes || 0}</p>
+            <p className="text-xs md:text-sm text-gray-500 mt-1">Pendientes</p>
           </div>
-          <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <p className="text-2xl font-bold text-blue-600">{orderStats?.enviados || 0}</p>
-            <p className="text-sm text-gray-500">Enviados</p>
+          <div className="text-center p-3 md:p-4 bg-pink-50 rounded-lg">
+            <p className="text-xl md:text-2xl font-bold text-pink-600">{orderStats?.enviados || 0}</p>
+            <p className="text-xs md:text-sm text-gray-500 mt-1">Enviados</p>
           </div>
-          <div className="text-center p-4 bg-green-50 rounded-lg">
-            <p className="text-2xl font-bold text-green-600">{orderStats?.entregados || 0}</p>
-            <p className="text-sm text-gray-500">Entregados</p>
+          <div className="text-center p-3 md:p-4 bg-green-50 rounded-lg">
+            <p className="text-xl md:text-2xl font-bold text-green-600">{orderStats?.entregados || 0}</p>
+            <p className="text-xs md:text-sm text-gray-500 mt-1">Entregados</p>
           </div>
-          <div className="text-center p-4 bg-red-50 rounded-lg">
-            <p className="text-2xl font-bold text-red-600">{orderStats?.cancelados || 0}</p>
-            <p className="text-sm text-gray-500">Cancelados</p>
+          <div className="text-center p-3 md:p-4 bg-red-50 rounded-lg">
+            <p className="text-xl md:text-2xl font-bold text-red-600">{orderStats?.cancelados || 0}</p>
+            <p className="text-xs md:text-sm text-gray-500 mt-1">Cancelados</p>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

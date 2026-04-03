@@ -67,21 +67,20 @@ export default function AdminOrdersPage() {
   if (!isAuthenticated || !isAdmin) return null;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Gestión de Pedidos</h1>
-        <Link href="/admin" className="text-blue-600 hover:underline">← Panel</Link>
+    <div className="max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 md:mb-6">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-800">Gestión de Pedidos</h1>
       </div>
 
-      {error && <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-md text-sm">{error}</div>}
-      {success && <div className="mb-4 p-3 bg-green-50 text-green-600 rounded-md text-sm">{success}</div>}
+      {error && <div className="mb-3 md:mb-4 p-3 bg-red-50 text-red-600 rounded-md text-xs md:text-sm">{error}</div>}
+      {success && <div className="mb-3 md:mb-4 p-3 bg-green-50 text-green-600 rounded-md text-xs md:text-sm">{success}</div>}
 
-      <div className="mb-6 flex items-center gap-4">
-        <label className="text-sm font-medium text-gray-700">Filtrar por estado:</label>
+      <div className="mb-4 md:mb-6 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+        <label className="text-xs md:text-sm font-medium text-gray-700">Filtrar por estado:</label>
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value as OrderStatus | 'ALL')}
-          className="px-3 py-2 border rounded-md text-sm"
+          className="px-3 py-2 border rounded-md text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="ALL">Todos</option>
           <option value="PENDIENTE">Pendientes</option>
@@ -89,29 +88,29 @@ export default function AdminOrdersPage() {
           <option value="ENTREGADO">Entregados</option>
           <option value="CANCELADO">Cancelados</option>
         </select>
-        <span className="text-sm text-gray-500">
+        <span className="text-xs md:text-sm text-gray-500">
           {filteredOrders.length} pedido(s)
         </span>
       </div>
 
-      <div className="grid gap-4">
+      <div className="grid gap-3 md:gap-4">
         {filteredOrders.map((order) => (
-          <div key={order.id} className="bg-white rounded-lg shadow-sm border p-4">
-            <div className="flex justify-between items-start mb-3">
-              <div>
-                <div className="flex items-center gap-3">
-                  <h3 className="text-lg font-semibold text-gray-800">Pedido #{order.id}</h3>
-                  <span className={`px-2 py-1 text-xs font-medium rounded ${getStatusColor(order.status)}`}>
+          <div key={order.id} className="bg-white rounded-lg shadow-sm border p-3 md:p-4">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2 mb-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base md:text-lg font-semibold text-gray-800">Pedido #{order.id}</h3>
+                  <span className={`px-2 py-1 text-xs font-medium rounded whitespace-nowrap ${getStatusColor(order.status)}`}>
                     {order.status}
                   </span>
                 </div>
                 {order.user && (
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-xs md:text-sm text-gray-600 mt-1 break-words">
                     Cliente: {order.user.name} ({order.user.email})
                   </p>
                 )}
-                <p className="text-sm text-gray-500">
-                  Fecha: {new Date(order.createdAt).toLocaleDateString('es-ES', {
+                <p className="text-xs md:text-sm text-gray-500 mt-1">
+                  {new Date(order.createdAt).toLocaleDateString('es-ES', {
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
@@ -120,23 +119,23 @@ export default function AdminOrdersPage() {
                   })}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-xl font-bold text-gray-800">
+              <div className="text-left sm:text-right">
+                <p className="text-lg md:text-xl font-bold text-gray-800">
                   ${Number(order.totalAmount).toFixed(2)}
                 </p>
-                <p className="text-sm text-gray-500">{order.items.length} producto(s)</p>
+                <p className="text-xs md:text-sm text-gray-500">{order.items.length} producto(s)</p>
               </div>
             </div>
 
-            <div className="border-t pt-3 mb-3">
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">Productos:</h4>
+            <div className="border-t pt-2 md:pt-3 mb-2 md:mb-3">
+              <h4 className="text-xs md:text-sm font-semibold text-gray-700 mb-2">Productos:</h4>
               <div className="space-y-1">
                 {order.items.map((item) => (
-                  <div key={item.id} className="flex justify-between text-sm">
-                    <span className="text-gray-600">
+                  <div key={item.id} className="flex justify-between text-xs md:text-sm gap-2">
+                    <span className="text-gray-600 flex-1 break-words">
                       {item.product?.name || `Producto ID ${item.productId}`} × {item.quantity}
                     </span>
-                    <span className="text-gray-800 font-medium">
+                    <span className="text-gray-800 font-medium whitespace-nowrap">
                       ${Number(item.priceAtPurchase || 0).toFixed(2)}
                     </span>
                   </div>
@@ -144,12 +143,12 @@ export default function AdminOrdersPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-3 border-t">
-              <label className="text-sm font-medium text-gray-700">Cambiar estado:</label>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-2 md:pt-3 border-t">
+              <label className="text-xs md:text-sm font-medium text-gray-700">Cambiar estado:</label>
               <select
                 value={order.status}
                 onChange={(e) => handleUpdateStatus(order.id, e.target.value as OrderStatus)}
-                className="px-3 py-1 border rounded-md text-sm"
+                className="w-full sm:w-auto px-3 py-2 border rounded-md text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="PENDIENTE">Pendiente</option>
                 <option value="ENVIADO">Enviado</option>
@@ -162,7 +161,7 @@ export default function AdminOrdersPage() {
       </div>
 
       {filteredOrders.length === 0 && !isLoading && (
-        <p className="text-gray-500 text-center py-8">No hay pedidos con el filtro seleccionado.</p>
+        <p className="text-gray-500 text-center py-6 md:py-8 text-sm md:text-base">No hay pedidos con el filtro seleccionado.</p>
       )}
     </div>
   );

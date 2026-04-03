@@ -1,8 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { User, Role } from '@/types';
 import authService from '@/services/auth.service';
+import localCartService from '@/services/localCart.service';
+import cartService from '@/services/cart.service';
 
 interface AuthContextType {
   user: User | null;
@@ -16,6 +18,26 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+async function migrateLocalCartToServer() {
+  const localCart = localCartService.getCart();
+  if (localCart.length === 0) return;
+
+  for (const item of localCart) {
+    try {
+      await cartService.addItem({
+        productId: item.productId,
+        quantity: item.quantity,
+      });
+    } catch (err) {
+      console.error('Error migrating cart item:', err);
+    }
+  }
+
+  localCartService.clearCart();
+  
+  window.dispatchEvent(new CustomEvent('cart-updated'));
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -54,6 +76,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('token', response.token);
     localStorage.setItem('user', JSON.stringify(response.user));
     setUser(response.user);
+
+    await migrateLocalCartToServer();
+    window.dispatchEvent(new CustomEvent('cart-updated'));
+
+    // Redirigir al admin si es admin
+    if (response.user.role === 'ADMIN') {
+      window.location.href = '/admin';
+    }
   };
 
   const register = async (email: string, password: string, name: string) => {
@@ -62,11 +92,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('token', response.token);
     localStorage.setItem('user', JSON.stringify(response.user));
     setUser(response.user);
+
+    await migrateLocalCartToServer();
+    window.dispatchEvent(new CustomEvent('cart-updated'));
+
+    // Redirigir al admin si es admin
+    if (response.user.role === 'ADMIN') {
+      window.location.href = '/admin';
+    }
   };
 
   const logout = () => {
     authService.logout();
     setUser(null);
+    window.dispatchEvent(new CustomEvent('cart-updated'));
+    window.location.href = '/';
   };
 
   const isAuthenticated = !!user;

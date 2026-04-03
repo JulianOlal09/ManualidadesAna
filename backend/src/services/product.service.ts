@@ -18,26 +18,68 @@ export interface CreateProductInput {
 
 export interface UpdateProductInput {
   name?: string;
-  description?: string;
-  categoryId?: number;
-  imageUrl?: string;
+  description?: string | null;
+  categoryId?: number | null;
+  imageUrl?: string | null;
   price?: number;
-  sku?: string;
+  sku?: string | null;
   stock?: number;
-  marginPercentage?: number;
+  marginPercentage?: number | null;
 }
 
-export async function getAllProducts(categoryId?: number): Promise<ProductWithRelations[]> {
-  return prisma.product.findMany({
-    where: { 
-      isActive: true,
-      ...(categoryId ? { categoryId } : {}),
-    },
-    include: {
-      category: true,
-    },
-    orderBy: { createdAt: 'desc' },
-  }) as Promise<ProductWithRelations[]>;
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function getAllProducts(
+  categoryId?: number, 
+  pagination?: PaginationParams,
+  includeInactive?: boolean
+): Promise<PaginatedResult<ProductWithRelations>> {
+  const { page = 1, limit = 25 } = pagination || {};
+  const skip = (page - 1) * limit;
+
+  const whereClause: any = {};
+  
+  if (!includeInactive) {
+    whereClause.isActive = true;
+  }
+  
+  if (categoryId) {
+    whereClause.categoryId = categoryId;
+  }
+
+  const [products, total] = await Promise.all([
+    prisma.product.findMany({
+      where: whereClause,
+      include: {
+        category: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    }),
+    prisma.product.count({
+      where: whereClause,
+    }),
+  ]);
+
+  return {
+    data: products as ProductWithRelations[],
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export async function getProductById(id: number): Promise<ProductWithRelations | null> {
@@ -47,6 +89,16 @@ export async function getProductById(id: number): Promise<ProductWithRelations |
       category: true,
     },
   }) as Promise<ProductWithRelations | null>;
+}
+
+function generateSKU(name: string): string {
+  const words = name.trim().split(/\s+/);
+  let acronym = '';
+  for (let i = 0; i < Math.min(words.length, 3); i++) {
+    acronym += words[i].charAt(0).toUpperCase();
+  }
+  const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+  return `${acronym}-${random}`;
 }
 
 export async function createProduct(input: CreateProductInput): Promise<Product> {
@@ -67,6 +119,8 @@ export async function createProduct(input: CreateProductInput): Promise<Product>
     }
   }
 
+  const sku = input.sku || generateSKU(input.name);
+
   return prisma.product.create({
     data: {
       name: input.name,
@@ -74,7 +128,7 @@ export async function createProduct(input: CreateProductInput): Promise<Product>
       categoryId: input.categoryId,
       imageUrl: input.imageUrl,
       price: input.price || 0,
-      sku: input.sku,
+      sku,
       stock: input.stock || 0,
     },
   });

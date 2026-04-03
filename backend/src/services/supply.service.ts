@@ -1,7 +1,8 @@
 import { prisma } from '../lib/prisma.js';
 import { Supply } from '@prisma/client';
 
-export type SupplyWithRelations = Supply & {
+export type SupplyWithRelations = Omit<Supply, 'cost'> & {
+  cost: number;
   products?: Array<{
     id: number;
     productId: number;
@@ -34,7 +35,7 @@ export interface UpdateProductSupplyInput {
 }
 
 export async function getAllSupplies(): Promise<SupplyWithRelations[]> {
-  return prisma.supply.findMany({
+  const supplies = await prisma.supply.findMany({
     include: {
       products: {
         include: {
@@ -47,10 +48,33 @@ export async function getAllSupplies(): Promise<SupplyWithRelations[]> {
         },
       },
     },
-    orderBy: {
-      name: 'asc',
-    },
-  }) as Promise<SupplyWithRelations[]>;
+  });
+
+  return supplies.map(supply => ({
+    ...supply,
+    cost: supply.cost.toNumber(),
+    products: supply.products?.map(ps => ({
+      id: ps.id,
+      productId: ps.productId,
+      supplyId: ps.supplyId,
+      quantity: ps.quantity.toNumber(),
+      product: ps.product,
+    })),
+  })) as SupplyWithRelations[];
+}
+
+export async function getSupplyStats(): Promise<{ totalSupplies: number; totalCost: number }> {
+  const [totalSupplies, costResult] = await Promise.all([
+    prisma.supply.count(),
+    prisma.supply.aggregate({
+      _sum: { cost: true },
+    }),
+  ]);
+
+  return {
+    totalSupplies,
+    totalCost: costResult._sum.cost?.toNumber() || 0,
+  };
 }
 
 export async function getSupplyById(id: number): Promise<SupplyWithRelations | null> {
@@ -138,14 +162,24 @@ export async function getSuppliesByProduct(productId: number): Promise<{
   id: number;
   supplyId: number;
   quantity: number;
-  supply: Supply;
+  supply: Omit<Supply, 'cost'> & { cost: number };
 }[]> {
-  return prisma.productSupply.findMany({
+  const supplies = await prisma.productSupply.findMany({
     where: { productId },
     include: {
       supply: true,
     },
   });
+
+  return supplies.map(ps => ({
+    id: ps.id,
+    supplyId: ps.supplyId,
+    quantity: ps.quantity.toNumber(),
+    supply: {
+      ...ps.supply,
+      cost: ps.supply.cost.toNumber(),
+    },
+  }));
 }
 
 export async function addSupplyToProduct(
@@ -190,13 +224,20 @@ export async function addSupplyToProduct(
     throw new Error('SUPPLY_ALREADY_LINKED');
   }
 
-  return prisma.productSupply.create({
+  const created = await prisma.productSupply.create({
     data: {
       productId,
       supplyId: input.supplyId,
       quantity: input.quantity,
     },
   });
+
+  return {
+    id: created.id,
+    productId: created.productId,
+    supplyId: created.supplyId,
+    quantity: created.quantity.toNumber(),
+  };
 }
 
 export async function updateSupplyInProduct(
@@ -226,7 +267,7 @@ export async function updateSupplyInProduct(
     throw new Error('INVALID_QUANTITY');
   }
 
-  return prisma.productSupply.update({
+  const updated = await prisma.productSupply.update({
     where: {
       productId_supplyId: {
         productId,
@@ -237,6 +278,13 @@ export async function updateSupplyInProduct(
       quantity: input.quantity,
     },
   });
+
+  return {
+    id: updated.id,
+    productId: updated.productId,
+    supplyId: updated.supplyId,
+    quantity: updated.quantity.toNumber(),
+  };
 }
 
 export async function removeSupplyFromProduct(

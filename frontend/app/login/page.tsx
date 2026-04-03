@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
 
 function LoginContent() {
@@ -32,7 +33,23 @@ function LoginContent() {
         router.push(redirectPath);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al iniciar sesión');
+      console.log('Login error:', err);
+      let errorMessage = 'Error al iniciar sesión';
+      
+      if (axios.isAxiosError(err)) {
+        const data = err.response?.data as { error?: { message?: string } };
+        const backendMessage = data?.error?.message || '';
+        
+        if (backendMessage.includes('Invalid email or password')) {
+          errorMessage = 'Correo electrónico o contraseña incorrectos';
+        } else {
+          errorMessage = backendMessage || err.message;
+        }
+      } else if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }

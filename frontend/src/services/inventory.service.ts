@@ -23,9 +23,35 @@ export interface AdjustStockRequest {
   operation: 'add' | 'set';
 }
 
+export interface InventoryFilters {
+  search?: string;
+  categoryId?: number;
+  stockStatus?: 'all' | 'out' | 'low' | 'in';
+}
+
+export interface PaginatedInventory {
+  data: ProductWithCategory[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const inventoryService = {
-  async getAll(): Promise<ProductWithCategory[]> {
-    const response = await apiClient.get<ApiResponse<ProductWithCategory[]>>('/admin/inventory');
+  async getAll(
+    filters?: InventoryFilters,
+    page: number = 1,
+    limit: number = 25
+  ): Promise<PaginatedInventory> {
+    const params = new URLSearchParams();
+    params.set('page', page.toString());
+    params.set('limit', limit.toString());
+    
+    if (filters?.search) params.set('search', filters.search);
+    if (filters?.categoryId) params.set('categoryId', filters.categoryId.toString());
+    if (filters?.stockStatus) params.set('stockStatus', filters.stockStatus);
+
+    const response = await apiClient.get<ApiResponse<PaginatedInventory>>(`/admin/inventory?${params.toString()}`);
     if (response.data.success && response.data.data) {
       return response.data.data;
     }

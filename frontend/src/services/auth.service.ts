@@ -7,6 +7,13 @@ import {
   User,
 } from '@/types';
 
+export interface UpdateProfileInput {
+  name?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
 export const authService = {
   async login(data: AuthLoginRequest): Promise<AuthResponse> {
     console.log('auth.service login:', data);
@@ -15,7 +22,7 @@ export const authService = {
     if (response.data.success && response.data.data) {
       return response.data.data;
     }
-    throw new Error(response.data.error?.message || 'Login failed');
+    throw new Error(response.data.error?.message || 'Invalid email or password');
   },
 
   async register(data: AuthRegisterRequest): Promise<AuthResponse> {
@@ -32,6 +39,21 @@ export const authService = {
       return response.data.data;
     }
     throw new Error(response.data.error?.message || 'Failed to get user');
+  },
+
+  async updateProfile(data: UpdateProfileInput): Promise<User> {
+    const response = await apiClient.put<ApiResponse<User>>('/auth/profile', data);
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    throw new Error(response.data.error?.message || 'Failed to update profile');
+  },
+
+  async deleteAccount(password: string): Promise<void> {
+    const response = await apiClient.delete<ApiResponse<{ message: string }>>('/auth/account', { data: { password } } as any);
+    if (!response.data.success) {
+      throw new Error(response.data.error?.message || 'Failed to delete account');
+    }
   },
 
   logout() {
