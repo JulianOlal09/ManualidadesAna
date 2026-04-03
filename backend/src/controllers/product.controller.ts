@@ -8,6 +8,7 @@ import {
   toggleProductActive,
   calculateSuggestedPrice,
 } from '../services/product.service.js';
+import { uploadImage, deleteImage } from '../services/storage.service.js';
 
 export async function getProductsController(
   req: Request,
@@ -96,7 +97,8 @@ export async function createProductController(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { name, description, categoryId, imageUrl, price, sku, stock } = req.body;
+    const { name, description, categoryId, price, sku, stock } = req.body;
+    const file = req.file;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       res.status(400).json({
@@ -107,6 +109,11 @@ export async function createProductController(
         },
       });
       return;
+    }
+
+    let imageUrl: string | undefined;
+    if (file) {
+      imageUrl = await uploadImage(file.buffer, file.originalname);
     }
 
     const categoryIdNumber = categoryId ? Number(categoryId) : undefined;
@@ -172,6 +179,7 @@ export async function updateProductController(
 ): Promise<void> {
   try {
     const idParam = req.params.id;
+    const file = req.file;
     
     if (!idParam || typeof idParam !== 'string') {
       res.status(400).json({
@@ -197,7 +205,7 @@ export async function updateProductController(
       return;
     }
 
-    const { name, description, categoryId, imageUrl, price, sku, stock, marginPercentage } = req.body;
+    const { name, description, categoryId, imageUrl, price, sku, stock, marginPercentage, deleteImage: deleteImageFlag } = req.body;
 
     const updateData: {
       name?: string;
@@ -245,7 +253,24 @@ export async function updateProductController(
       }
     }
 
-    if (imageUrl !== undefined) updateData.imageUrl = imageUrl;
+    // Handle image: new file upload, delete flag, or existing URL
+    if (file) {
+      // Get existing product to delete old image
+      const existingProduct = await import('../services/product.service.js').then(m => m.getProductById(id));
+      if (existingProduct?.imageUrl) {
+        await deleteImage(existingProduct.imageUrl);
+      }
+      updateData.imageUrl = await uploadImage(file.buffer, file.originalname);
+    } else if (deleteImageFlag === 'true') {
+      const existingProduct = await import('../services/product.service.js').then(m => m.getProductById(id));
+      if (existingProduct?.imageUrl) {
+        await deleteImage(existingProduct.imageUrl);
+      }
+      updateData.imageUrl = null;
+    } else if (imageUrl !== undefined) {
+      updateData.imageUrl = imageUrl;
+    }
+
     if (price !== undefined) {
       const priceNumber = Number(price);
       if (isNaN(priceNumber)) {
@@ -373,6 +398,12 @@ export async function deleteProductController(
         },
       });
       return;
+    }
+
+    // Get product to delete image
+    const existingProduct = await import('../services/product.service.js').then(m => m.getProductById(id));
+    if (existingProduct?.imageUrl) {
+      await deleteImage(existingProduct.imageUrl);
     }
 
     await deleteProduct(id);

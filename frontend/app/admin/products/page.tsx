@@ -24,6 +24,9 @@ export default function AdminProductsPage() {
   const [isSaving, setIsSaving] = useState(false);
   
   const [productForm, setProductForm] = useState<CreateProductInput>({ name: '', description: '', categoryId: undefined, imageUrl: '', price: undefined, sku: '', stock: 0 });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [deleteImage, setDeleteImage] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.push('/login');
@@ -48,6 +51,9 @@ export default function AdminProductsPage() {
 
   const openCreateProduct = () => {
     setProductForm({ name: '', description: '', categoryId: undefined, imageUrl: '', price: undefined, sku: '', stock: 0 });
+    setImageFile(null);
+    setPreviewUrl('');
+    setDeleteImage(false);
     setModalMode('createProduct');
   };
 
@@ -62,7 +68,25 @@ export default function AdminProductsPage() {
       sku: product.sku || '',
       stock: product.stock,
     });
+    setImageFile(null);
+    setPreviewUrl(product.imageUrl || '');
+    setDeleteImage(false);
     setModalMode('editProduct');
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setDeleteImage(false);
+    }
+  };
+
+  const handleDeleteImageClick = () => {
+    setImageFile(null);
+    setPreviewUrl('');
+    setDeleteImage(true);
   };
 
   const handleSaveProduct = async () => {
@@ -70,28 +94,27 @@ export default function AdminProductsPage() {
     setError('');
     try {
       if (modalMode === 'createProduct') {
-        await adminProductService.create(productForm);
+        await adminProductService.create(productForm, imageFile || undefined);
         setSuccess('Producto creado correctamente');
       } else if (modalMode === 'editProduct' && selectedProduct) {
-        const updateData: UpdateProductInput = {
-          name: productForm.name,
-          description: productForm.description,
-          categoryId: productForm.categoryId,
-          imageUrl: productForm.imageUrl,
-          price: productForm.price,
-          sku: productForm.sku || undefined,
-          stock: productForm.stock,
-        };
-        await adminProductService.update(selectedProduct.id, updateData);
+        await adminProductService.update(selectedProduct.id, { ...productForm, deleteImage }, imageFile || undefined);
         setSuccess('Producto actualizado correctamente');
       }
-      setModalMode(null);
+      closeModal();
       fetchData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al guardar');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const closeModal = () => {
+    setModalMode(null);
+    setSelectedProduct(null);
+    setImageFile(null);
+    setPreviewUrl('');
+    setDeleteImage(false);
   };
 
   const handleDeleteProduct = async (id: number) => {
@@ -115,12 +138,6 @@ export default function AdminProductsPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al actualizar');
     }
-  };
-
-  const closeModal = () => {
-    setModalMode(null);
-    setSelectedProduct(null);
-    setError('');
   };
 
   if (authLoading || isLoading) {
@@ -217,8 +234,30 @@ export default function AdminProductsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">URL de Imagen</label>
-                <input type="text" value={productForm.imageUrl || ''} onChange={(e) => setProductForm({ ...productForm, imageUrl: e.target.value })} className="w-full px-3 py-2 text-sm md:text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="https://..." />
+                <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">Imagen</label>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="w-full px-3 py-2 text-sm md:text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {previewUrl && (
+                  <div className="mt-2 relative">
+                    <img src={previewUrl} alt="Preview" className="w-32 h-32 object-cover rounded-lg border" />
+                    <button
+                      type="button"
+                      onClick={handleDeleteImageClick}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+                {(modalMode === 'editProduct' && productForm.imageUrl && !previewUrl) && (
+                  <div className="mt-2">
+                    <img src={productForm.imageUrl} alt="Current" className="w-32 h-32 object-cover rounded-lg border" />
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <div>
