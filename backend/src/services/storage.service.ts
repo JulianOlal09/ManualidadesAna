@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const s3Client = new S3Client({
   endpoint: process.env.BUCKET_ENDPOINT,
-  region: process.env.BUCKET_REGION || 'auto',
+  region: process.env.BUCKET_REGION || 'us-east-1',
   credentials: {
     accessKeyId: process.env.BUCKET_ACCESS_KEY || '',
     secretAccessKey: process.env.BUCKET_SECRET_KEY || '',
@@ -11,7 +11,7 @@ const s3Client = new S3Client({
   forcePathStyle: true,
 });
 
-const BUCKET_NAME = process.env.BUCKET_NAME || 'manualidades-ana';
+const BUCKET_NAME = process.env.BUCKET_NAME || 'portable-tote-zktyu-xjvyf';
 
 // Derive the public base URL for serving stored objects.
 // Priority:
@@ -27,7 +27,8 @@ function getPublicBaseUrl(): string {
 
   const endpoint = process.env.BUCKET_ENDPOINT || '';
   const endpointHost = endpoint.replace(/^https?:\/\//, '');
-  return `https://${BUCKET_NAME}.${endpointHost}`;
+  const bucketName = process.env.BUCKET_NAME || 'portable-tote-zktyu-xjvyf';
+  return `https://${bucketName}.${endpointHost}`;
 }
 
 export async function uploadImage(file: Buffer, originalFilename: string): Promise<string> {
