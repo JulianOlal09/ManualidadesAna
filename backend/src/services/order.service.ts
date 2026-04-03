@@ -244,13 +244,18 @@ export async function getOrderStats(): Promise<{
   enviados: number;
   entregados: number;
   cancelados: number;
+  totalSales: number;
 }> {
-  const [total, pendientes, enviados, entregados, cancelados] = await Promise.all([
+  const [total, pendientes, enviados, entregados, cancelados, salesResult] = await Promise.all([
     prisma.order.count(),
     prisma.order.count({ where: { status: OrderStatus.PENDIENTE } }),
     prisma.order.count({ where: { status: OrderStatus.ENVIADO } }),
     prisma.order.count({ where: { status: OrderStatus.ENTREGADO } }),
     prisma.order.count({ where: { status: OrderStatus.CANCELADO } }),
+    prisma.order.aggregate({
+      where: { status: OrderStatus.ENTREGADO },
+      _sum: { totalAmount: true },
+    }),
   ]);
 
   return {
@@ -259,5 +264,176 @@ export async function getOrderStats(): Promise<{
     enviados,
     entregados,
     cancelados,
+    totalSales: salesResult._sum.totalAmount?.toNumber() || 0,
   };
+}
+
+export interface UpdateOrderItemsInput {
+  items: Array<{ productId: number; quantity: number }>;
+}
+
+export async function updateOrderItems(
+  orderId: number,
+  userId: number,
+  input: UpdateOrderItemsInput
+): Promise<OrderWithRelations> {
+  return await prisma.$transaction(async (tx) => {
+    const existingOrder = await tx.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!existingOrder) {
+      throw new Error('ORDER_NOT_FOUND');
+    }
+
+    if (existingOrder.userId !== userId) {
+      throw new Error('ORDER_NOT_FOUND');
+    }
+
+    if (existingOrder.status !== OrderStatus.PENDIENTE) {
+      throw new Error('ONLY_PENDING_ORDERS_CAN_BE_MODIFIED');
+    }
+
+    const errors: Array<{ productId: number; message: string }> = [];
+    
+    for (const item of input.items) {
+      const product = await tx.product.findUnique({
+        where: { id: item.productId },
+      });
+
+      if (!product || !product.isActive) {
+        errors.push({ productId: item.productId, message: 'Product not available' });
+        continue;
+      }
+
+      const existingItem = existingOrder.items.find(i => i.productId === item.productId);
+      const currentQuantity = existingItem?.quantity || 0;
+      const quantityDiff = item.quantity - currentQuantity;
+
+      if (quantityDiff > 0 && product.stock < quantityDiff) {
+        errors.push({ 
+          productId: item.productId, 
+          message: `Insufficient stock for "${product.name}". Available: ${product.stock}` 
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      throw new Error(JSON.stringify({ code: 'VALIDATION_ERRORS', errors }));
+    }
+
+    for (const existingItem of existingOrder.items) {
+      const newItem = input.items.find(i => i.productId === existingItem.productId);
+      
+      if (!newItem) {
+        const qty: number = existingItem.quantity ?? 0;
+        await tx.orderItem.delete({ where: { id: existingItem.id } });
+        await tx.product.update({
+          where: { id: existingItem.productId },
+          data: { stock: { increment: qty } },
+        } as any);
+      } else if (newItem.quantity !== existingItem.quantity) {
+        const oldQty: number = existingItem.quantity ?? 0;
+        const newQty: number = newItem.quantity ?? 0;
+        const quantityDiff = newQty - oldQty;
+        await tx.orderItem.update({
+          where: { id: existingItem.id },
+          data: { quantity: newItem.quantity },
+        });
+        await tx.product.update({
+          where: { id: existingItem.productId },
+          data: { stock: { decrement: quantityDiff } },
+        } as any);
+      }
+    }
+
+    for (const item of input.items) {
+      const existingItem = existingOrder.items.find(i => i.productId === item.productId);
+      if (!existingItem) {
+        const product = await tx.product.findUnique({ where: { id: item.productId } });
+        if (product) {
+          await tx.orderItem.create({
+            data: {
+              orderId,
+              productId: item.productId,
+              quantity: item.quantity,
+              priceAtPurchase: product.price,
+            },
+          });
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: item.quantity } },
+          });
+        }
+      }
+    }
+
+    const updatedOrder = await tx.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: { include: { product: true } },
+        user: { select: { id: true, email: true, name: true } },
+      },
+    });
+
+    if (!updatedOrder) {
+      throw new Error('ORDER_NOT_FOUND');
+    }
+
+    let totalAmount = 0;
+    for (const item of updatedOrder.items) {
+      totalAmount += Number(item.priceAtPurchase || 0) * item.quantity;
+    }
+
+    await tx.order.update({
+      where: { id: orderId },
+      data: { totalAmount },
+    });
+
+    return updatedOrder as OrderWithRelations;
+  });
+}
+
+export async function cancelOrder(orderId: number, userId: number): Promise<Order> {
+  return await prisma.$transaction(async (tx) => {
+    const existingOrder = await tx.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: true,
+      },
+    });
+
+    if (!existingOrder) {
+      throw new Error('ORDER_NOT_FOUND');
+    }
+
+    if (existingOrder.userId !== userId) {
+      throw new Error('ORDER_NOT_FOUND');
+    }
+
+    if (existingOrder.status !== OrderStatus.PENDIENTE) {
+      throw new Error('ONLY_PENDING_ORDERS_CAN_BE_CANCELLED');
+    }
+
+    for (const item of existingOrder.items) {
+      if (item.productId) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: {
+              increment: item.quantity,
+            },
+          },
+        });
+      }
+    }
+
+    return tx.order.update({
+      where: { id: orderId },
+      data: { status: OrderStatus.CANCELADO },
+    });
+  });
 }

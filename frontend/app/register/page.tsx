@@ -39,7 +39,14 @@ function RegisterContent() {
       // Tras registrarse, siempre es un cliente (no admin), así que respetamos redirectPath
       router.push(redirectPath);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al registrarse');
+      const errorMessage = err instanceof Error ? err.message : 'Error al registrarse';
+      if (errorMessage.includes('already registered') || errorMessage.includes('ya registrada')) {
+        setError('El correo electrónico ya está registrado');
+      } else if (errorMessage.includes('at least 8')) {
+        setError('La contraseña debe tener al menos 8 caracteres');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }

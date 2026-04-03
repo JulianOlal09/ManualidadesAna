@@ -16,13 +16,20 @@ export async function getProductsController(
 ): Promise<void> {
   try {
     const categoryIdParam = req.query.categoryId as string | undefined;
-    const categoryId = categoryIdParam ? parseInt(categoryIdParam, 10) : undefined;
+    const pageParam = req.query.page as string | undefined;
+    const limitParam = req.query.limit as string | undefined;
+    const includeInactiveParam = req.query.includeInactive as string | undefined;
     
-    const products = await getAllProducts(categoryId);
+    const categoryId = categoryIdParam ? parseInt(categoryIdParam, 10) : undefined;
+    const page = pageParam ? parseInt(pageParam, 10) : 1;
+    const limit = limitParam ? parseInt(limitParam, 10) : 25;
+    const includeInactive = includeInactiveParam === 'true';
+    
+    const result = await getAllProducts(categoryId, { page, limit }, includeInactive);
 
     res.status(200).json({
       success: true,
-      data: products,
+      data: result,
     });
   } catch (error) {
     next(error);
@@ -217,7 +224,7 @@ export async function updateProductController(
       updateData.name = name.trim();
     }
 
-    if (description !== undefined) updateData.description = description;
+    if (description !== undefined) updateData.description = description === null ? undefined : description;
 
     if (categoryId !== undefined) {
       if (categoryId === null) {

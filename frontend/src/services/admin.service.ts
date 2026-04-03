@@ -33,9 +33,9 @@ export interface CategoryWithChildren extends Category {
 
 export const adminProductService = {
   async getAll(): Promise<ProductWithDetails[]> {
-    const response = await apiClient.get<ApiResponse<ProductWithDetails[]>>('/products');
+    const response = await apiClient.get<ApiResponse<{ data: ProductWithDetails[]; total: number; page: number; limit: number; totalPages: number }>>('/products?includeInactive=true');
     if (response.data.success && response.data.data) {
-      return response.data.data;
+      return response.data.data.data;
     }
     throw new Error(response.data.error?.message || 'Failed to fetch products');
   },

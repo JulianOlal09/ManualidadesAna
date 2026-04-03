@@ -9,6 +9,7 @@ import {
   addSupplyToProduct,
   updateSupplyInProduct,
   removeSupplyFromProduct,
+  getSupplyStats,
 } from '../services/supply.service.js';
 
 export async function getSuppliesController(
@@ -22,6 +23,23 @@ export async function getSuppliesController(
     res.status(200).json({
       success: true,
       data: supplies,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getSupplyStatsController(
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const stats = await getSupplyStats();
+
+    res.status(200).json({
+      success: true,
+      data: stats,
     });
   } catch (error) {
     next(error);
@@ -489,7 +507,7 @@ export async function updateSupplyInProductController(
     }
 
     const productId = parseInt(productIdParam, 10);
-    const supplyId = parseInt(supplyIdParam, 10);
+    const supplyId = parseInt(Array.isArray(supplyIdParam) ? supplyIdParam[0] : supplyIdParam, 10);
 
     if (isNaN(productId) || isNaN(supplyId)) {
       res.status(400).json({
@@ -569,7 +587,7 @@ export async function removeSupplyFromProductController(
     }
 
     const productId = parseInt(productIdParam, 10);
-    const supplyId = parseInt(supplyIdParam, 10);
+    const supplyId = parseInt(Array.isArray(supplyIdParam) ? supplyIdParam[0] : supplyIdParam, 10);
 
     if (isNaN(productId) || isNaN(supplyId)) {
       res.status(400).json({

@@ -8,12 +8,56 @@ import localCartService from '@/services/localCart.service';
 import cartService from '@/services/cart.service';
 import orderService from '@/services/order.service';
 
+const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '524611204537';
+
+function formatWhatsAppMessage(order: any, user: any): string {
+  const date = new Date().toLocaleDateString('es-MX', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+
+  let message = `[NUEVO PEDIDO #${order.id}]\n`;
+  message += `------------------------\n\n`;
+  
+  message += `[DATOS DEL CLIENTE]\n`;
+  message += `- Cliente: ${user.name}\n`;
+  message += `- Email: ${user.email}\n`;
+  message += `- Fecha: ${date}\n\n`;
+  
+  message += `[PRODUCTOS PEDIDOS]\n`;
+  message += `------------------------\n`;
+  
+  if (order.items && order.items.length > 0) {
+    order.items.forEach((item: any, index: number) => {
+      const productName = item.product?.name || `Producto #${item.productId}`;
+      const subtotal = Number(item.priceAtPurchase || 0) * item.quantity;
+      message += `${index + 1}. ${productName}\n`;
+      message += `   Cant: ${item.quantity} | P.Unit: $${Number(item.priceAtPurchase || 0).toFixed(2)} | Subtotal: $${subtotal.toFixed(2)}\n\n`;
+    });
+  }
+  
+  message += `------------------------\n`;
+  message += `TOTAL DEL PEDIDO: $${Number(order.totalAmount).toFixed(2)}`;
+  
+  return encodeURIComponent(message);
+}
+
+function sendWhatsApp(message: string) {
+  // El mensaje ya viene codificado de formatWhatsAppMessage
+  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${message}`;
+  window.location.href = url;
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [orderCreated, setOrderCreated] = useState<any>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -31,15 +75,12 @@ export default function CheckoutPage() {
       const localCart = localCartService.getCart();
       
       if (localCart.length > 0) {
-        // Migrar carrito local al servidor
         for (const item of localCart) {
           await cartService.addItem({
             productId: item.productId,
             quantity: item.quantity,
           });
         }
-        
-        // Limpiar carrito local
         localCartService.clearCart();
       }
     } catch (err) {
@@ -55,10 +96,19 @@ export default function CheckoutPage() {
     try {
       const order = await orderService.createOrder();
       setSuccess(`¡Pedido #${order.id} creado exitosamente!`);
+      setOrderCreated(order);
+      
+      // Enviar mensaje de WhatsApp
+      if (user) {
+        const message = formatWhatsAppMessage(order, user);
+        setTimeout(() => {
+          sendWhatsApp(message);
+        }, 1500);
+      }
       
       setTimeout(() => {
         router.push(`/orders/${order.id}`);
-      }, 2000);
+      }, 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al crear pedido');
       setIsProcessing(false);
@@ -88,7 +138,7 @@ export default function CheckoutPage() {
           Tu pedido está listo
         </h2>
         <p className="text-gray-600 mb-6">
-          Al confirmar, tu pedido será procesado y recibirás un número de seguimiento.
+          Al confirmar, tu pedido será procesado y la propietaria recibirá una notificación por WhatsApp.
         </p>
 
         {error && (
@@ -100,6 +150,9 @@ export default function CheckoutPage() {
         {success && (
           <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
             <p className="text-green-800 text-sm font-medium">{success}</p>
+            {!orderCreated && (
+              <p className="text-green-600 text-xs mt-2">Se abrirá WhatsApp automáticamente...</p>
+            )}
           </div>
         )}
 
@@ -121,9 +174,9 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
-          <strong>Nota:</strong> Una vez confirmado el pedido, se descontará el stock de los productos automáticamente.
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <p className="text-sm text-green-800">
+          <strong>📱 Notificación:</strong> Al confirmar el pedido, se abrirá WhatsApp con los detalles del pedido para enviarle a la proprietaria.
         </p>
       </div>
     </div>

@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/layout/Navbar";
 import FloatingCart from "@/components/layout/FloatingCart";
+import Footer from "@/components/layout/Footer";
 import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -26,11 +27,7 @@ export default function RootLayout({
             <Navbar />
             <main className="flex-1 pb-16 md:pb-0">{children}</main>
             <FloatingCart />
-            <footer className="hidden md:block bg-gray-50 border-t py-6">
-              <div className="max-w-7xl mx-auto px-4 text-center text-sm text-gray-500">
-                © 2024 Manualidades Ana. Todos los derechos reservados.
-              </div>
-            </footer>
+            <Footer />
           </div>
         </AuthProvider>
         <Analytics />

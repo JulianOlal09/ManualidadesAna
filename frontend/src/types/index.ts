@@ -162,4 +162,5 @@ export interface OrderStats {
   enviados: number;
   entregados: number;
   cancelados: number;
+  totalSales: number;
 }

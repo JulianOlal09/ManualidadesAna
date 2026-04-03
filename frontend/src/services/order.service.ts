@@ -43,7 +43,7 @@ export const orderService = {
   },
 
   async updateOrderStatus(id: number, status: OrderStatus): Promise<Order> {
-    const response = await apiClient.put<ApiResponse<Order>>(`/orders/${id}/status`, { status });
+    const response = await apiClient.put<ApiResponse<Order>>(`/admin/orders/${id}/status`, { status });
     if (response.data.success && response.data.data) {
       return response.data.data;
     }
@@ -56,6 +56,22 @@ export const orderService = {
       return response.data.data;
     }
     throw new Error(response.data.error?.message || 'Failed to fetch order stats');
+  },
+
+  async updateOrderItems(orderId: number, items: Array<{ productId: number; quantity: number }>): Promise<Order> {
+    const response = await apiClient.put<ApiResponse<Order>>(`/orders/${orderId}`, { items });
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    throw new Error(response.data.error?.message || 'Failed to update order');
+  },
+
+  async cancelOrder(orderId: number): Promise<Order> {
+    const response = await apiClient.delete<ApiResponse<Order>>(`/orders/${orderId}`);
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    throw new Error(response.data.error?.message || 'Failed to cancel order');
   },
 };
 

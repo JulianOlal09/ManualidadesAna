@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { register, login, getUserById } from '../services/auth.service.js';
+import { register, login, getUserById, updateUser, deleteUser } from '../services/auth.service.js';
 
 function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -149,6 +149,106 @@ export async function meController(
       data: user,
     });
   } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateProfileController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'User not authenticated' },
+      });
+      return;
+    }
+
+    const { name, email, currentPassword, newPassword } = req.body;
+
+    if (!name && !email && !newPassword) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'At least one field to update is required' },
+      });
+      return;
+    }
+
+    if (newPassword && !currentPassword) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Current password required to change password' },
+      });
+      return;
+    }
+
+    const updatedUser = await updateUser(userId, { name, email, currentPassword, newPassword });
+
+    res.status(200).json({ success: true, data: updatedUser });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'USER_NOT_FOUND') {
+        res.status(404).json({ success: false, error: { code: 'USER_NOT_FOUND', message: 'User not found' } });
+        return;
+      }
+      if (error.message === 'EMAIL_ALREADY_EXISTS') {
+        res.status(409).json({ success: false, error: { code: 'EMAIL_ALREADY_EXISTS', message: 'Email already in use' } });
+        return;
+      }
+      if (error.message === 'INVALID_CURRENT_PASSWORD') {
+        res.status(401).json({ success: false, error: { code: 'INVALID_CURRENT_PASSWORD', message: 'Current password is incorrect' } });
+        return;
+      }
+    }
+    next(error);
+  }
+}
+
+export async function deleteAccountController(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const userId = req.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED', message: 'User not authenticated' },
+      });
+      return;
+    }
+
+    const { password } = req.body;
+
+    if (!password) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'VALIDATION_ERROR', message: 'Password required to delete account' },
+      });
+      return;
+    }
+
+    await deleteUser(userId, password);
+
+    res.status(200).json({ success: true, data: { message: 'Account deleted successfully' } });
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.message === 'USER_NOT_FOUND') {
+        res.status(404).json({ success: false, error: { code: 'USER_NOT_FOUND', message: 'User not found' } });
+        return;
+      }
+      if (error.message === 'INVALID_PASSWORD') {
+        res.status(401).json({ success: false, error: { code: 'INVALID_PASSWORD', message: 'Incorrect password' } });
+        return;
+      }
+    }
     next(error);
   }
 }

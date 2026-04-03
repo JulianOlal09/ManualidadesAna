@@ -8,16 +8,32 @@ import {
 } from '../services/inventory.service.js';
 
 export async function getInventoryController(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const inventory = await getAllInventory();
+    const search = req.query.search as string | undefined;
+    const categoryIdParam = req.query.categoryId as string | undefined;
+    const stockStatus = req.query.stockStatus as string | undefined;
+    const pageParam = req.query.page as string | undefined;
+    const limitParam = req.query.limit as string | undefined;
+
+    const categoryId = categoryIdParam ? parseInt(categoryIdParam, 10) : undefined;
+    const page = pageParam ? parseInt(pageParam, 10) : 1;
+    const limit = limitParam ? parseInt(limitParam, 10) : 25;
+
+    const filters = {
+      search,
+      categoryId,
+      stockStatus: (stockStatus as 'all' | 'out' | 'low' | 'in') || 'all',
+    };
+
+    const result = await getAllInventory(filters, { page, limit });
 
     res.status(200).json({
       success: true,
-      data: inventory,
+      data: result,
     });
   } catch (error) {
     next(error);

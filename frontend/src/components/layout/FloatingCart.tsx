@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import localCartService from '@/services/localCart.service';
 import cartService from '@/services/cart.service';
 
 export default function FloatingCart() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const pathname = usePathname();
   const [count, setCount] = useState(0);
 
   const loadCount = async () => {
@@ -32,6 +34,12 @@ export default function FloatingCart() {
   }, [authLoading, isAuthenticated]);
 
   useEffect(() => {
+    const handleCartUpdate = () => loadCount();
+    window.addEventListener('cart-updated', handleCartUpdate);
+    return () => window.removeEventListener('cart-updated', handleCartUpdate);
+  }, []);
+
+  useEffect(() => {
     const handleStorage = () => loadCount();
     window.addEventListener('storage', handleStorage);
     const interval = setInterval(loadCount, 3000);
@@ -40,6 +48,9 @@ export default function FloatingCart() {
       clearInterval(interval);
     };
   }, []);
+
+  // Ocultar en rutas de admin
+  if (pathname?.startsWith('/admin')) return null;
 
   if (count === 0) return null;
 

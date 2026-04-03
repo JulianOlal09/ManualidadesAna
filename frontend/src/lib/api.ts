@@ -40,9 +40,12 @@ class ApiClient {
       (error: AxiosError) => {
         if (error.response?.status === 401) {
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
+            const currentPath = window.location.pathname;
+            if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              window.location.href = '/login';
+            }
           }
         }
         return Promise.reject(error);
@@ -67,7 +70,7 @@ class ApiClient {
     return this.client.put<T>(url, data, config);
   }
 
-  delete<T>(url: string, config?: InternalAxiosRequestConfig): Promise<AxiosResponse<T>> {
+  delete<T>(url: string, config?: InternalAxiosRequestConfig & { data?: unknown }): Promise<AxiosResponse<T>> {
     return this.client.delete<T>(url, config);
   }
 
