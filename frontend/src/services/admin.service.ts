@@ -20,6 +20,7 @@ export interface UpdateProductInput {
   sku?: string;
   stock?: number;
   isActive?: boolean;
+  deleteImage?: boolean;
 }
 
 export interface ProductWithDetails extends Product {
@@ -48,16 +49,35 @@ export const adminProductService = {
     throw new Error(response.data.error?.message || 'Failed to fetch product');
   },
 
-  async create(data: CreateProductInput): Promise<Product> {
-    const response = await apiClient.post<ApiResponse<Product>>('/products', data);
+  async create(data: CreateProductInput, imageFile?: File): Promise<Product> {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    if (data.description) formData.append('description', data.description);
+    if (data.categoryId) formData.append('categoryId', data.categoryId.toString());
+    if (data.price !== undefined) formData.append('price', data.price.toString());
+    if (data.sku) formData.append('sku', data.sku);
+    if (data.stock !== undefined) formData.append('stock', data.stock.toString());
+    if (imageFile) formData.append('image', imageFile);
+
+    const response = await apiClient.post<ApiResponse<Product>>('/products', formData);
     if (response.data.success && response.data.data) {
       return response.data.data;
     }
     throw new Error(response.data.error?.message || 'Failed to create product');
   },
 
-  async update(id: number, data: UpdateProductInput): Promise<Product> {
-    const response = await apiClient.put<ApiResponse<Product>>(`/products/${id}`, data);
+  async update(id: number, data: UpdateProductInput, imageFile?: File): Promise<Product> {
+    const formData = new FormData();
+    if (data.name) formData.append('name', data.name);
+    if (data.description !== undefined) formData.append('description', data.description || '');
+    if (data.categoryId !== undefined) formData.append('categoryId', data.categoryId.toString());
+    if (data.price !== undefined) formData.append('price', data.price.toString());
+    if (data.sku !== undefined) formData.append('sku', data.sku || '');
+    if (data.stock !== undefined) formData.append('stock', data.stock.toString());
+    if (data.deleteImage) formData.append('deleteImage', 'true');
+    if (imageFile) formData.append('image', imageFile);
+
+    const response = await apiClient.put<ApiResponse<Product>>(`/products/${id}`, formData);
     if (response.data.success && response.data.data) {
       return response.data.data;
     }
