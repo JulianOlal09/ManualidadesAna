@@ -2,33 +2,25 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client
 import { v4 as uuidv4 } from 'uuid';
 
 const s3Client = new S3Client({
-  endpoint: process.env.AWS_ENDPOINT || process.env.BUCKET_ENDPOINT,
-  region: process.env.AWS_REGION || process.env.BUCKET_REGION || 'us-east-1',
+  endpoint: process.env.AWS_ENDPOINT_URL,
+  region: process.env.AWS_DEFAULT_REGION || 'iad',
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID || process.env.BUCKET_ACCESS_KEY || '',
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || process.env.BUCKET_SECRET_KEY || '',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
   },
-  forcePathStyle: true,
+  forcePathStyle: false,
 });
 
-const BUCKET_NAME = process.env.AWS_BUCKET_NAME || process.env.BUCKET_NAME || 'portable-tote-zktyu-xjvyf';
+const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'preserved-case-qalc4pnf1z';
 
-// Derive the public base URL for serving stored objects.
-// Priority:
-//   1. BUCKET_PUBLIC_URL  — explicit override (e.g. a custom CDN domain)
-//   2. Constructed from BUCKET_ENDPOINT host using the Railway/Tigris public
-//      URL pattern: https://{bucket}.{endpoint-host}
-//      e.g. BUCKET_ENDPOINT=https://t3.storageapi.dev
-//           → https://manualidades-ana.t3.storageapi.dev
 function getPublicBaseUrl(): string {
   if (process.env.BUCKET_PUBLIC_URL) {
     return process.env.BUCKET_PUBLIC_URL.replace(/\/$/, '');
   }
 
-  const endpoint = process.env.AWS_ENDPOINT || process.env.BUCKET_ENDPOINT || '';
+  const endpoint = process.env.AWS_ENDPOINT_URL || '';
   const endpointHost = endpoint.replace(/^https?:\/\//, '');
-  const bucketName = process.env.AWS_BUCKET_NAME || process.env.BUCKET_NAME || 'portable-tote-zktyu-xjvyf';
-  return `https://${bucketName}.${endpointHost}`;
+  return `https://${BUCKET_NAME}.${endpointHost}`;
 }
 
 export async function uploadImage(file: Buffer, originalFilename: string): Promise<string> {
