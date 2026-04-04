@@ -1,4 +1,5 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, PutBucketPolicyCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 
 const s3Client = new S3Client({
@@ -13,44 +14,30 @@ const s3Client = new S3Client({
 
 const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'preserved-case-qalc4pnf1z';
 
-function getPublicBaseUrl(): string {
-  if (process.env.BUCKET_PUBLIC_URL) {
-    return process.env.BUCKET_PUBLIC_URL.replace(/\/$/, '');
+/**
+ * Extract the S3 key from either a full URL or a key
+ * Handles legacy full URLs (https://bucket.domain/products/uuid.ext) and new keys (products/uuid.ext)
+ */
+export function extractKey(urlOrKey: string): string {
+  if (!urlOrKey) return '';
+  
+  // If it starts with http, extract the key from the URL
+  if (urlOrKey.startsWith('http')) {
+    // Handle both path-style and virtual-hosted-style URLs
+    const match = urlOrKey.match(/\/products\/[^/]+\.[^/]+$/);
+    if (match) {
+      return match[0].substring(1); // Remove leading slash
+    }
+    return '';
   }
-
-  const endpoint = process.env.AWS_ENDPOINT_URL || '';
-  const endpointHost = endpoint.replace(/^https?:\/\//, '');
-  return `https://${BUCKET_NAME}.${endpointHost}`;
+  
+  // Already a key
+  return urlOrKey;
 }
 
-export async function setBucketPublicPolicy(): Promise<void> {
-  const policy = {
-    Version: '2012-10-17',
-    Statement: [
-      {
-        Sid: 'PublicReadGetObject',
-        Effect: 'Allow',
-        Principal: '*',
-        Action: 's3:GetObject',
-        Resource: `arn:aws:s3:::${BUCKET_NAME}/*`,
-      },
-    ],
-  };
-
-  try {
-    await s3Client.send(
-      new PutBucketPolicyCommand({
-        Bucket: BUCKET_NAME,
-        Policy: JSON.stringify(policy),
-      })
-    );
-    console.log(`✓ Bucket policy set for ${BUCKET_NAME} - public read enabled`);
-  } catch (error) {
-    console.error('Failed to set bucket policy:', error);
-    // Don't throw - this is not critical for server startup
-  }
-}
-
+/**
+ * Upload image to S3 and return the key (not the full URL)
+ */
 export async function uploadImage(file: Buffer, originalFilename: string): Promise<string> {
   const ext = originalFilename.split('.').pop() || 'jpg';
   const key = `products/${uuidv4()}.${ext}`;
@@ -64,23 +51,46 @@ export async function uploadImage(file: Buffer, originalFilename: string): Promi
     })
   );
 
-  return `${getPublicBaseUrl()}/${key}`;
+  return key; // Return only the key, not the full URL
 }
 
-export async function deleteImage(imageUrl: string): Promise<void> {
-  if (!imageUrl || !imageUrl.includes(BUCKET_NAME)) return;
+/**
+ * Generate a signed URL for an S3 object with 1 hour expiration
+ */
+export async function getSignedImageUrl(urlOrKey: string): Promise<string> {
+  const key = extractKey(urlOrKey);
+  if (!key) return '';
 
-  const key = imageUrl.split(`${BUCKET_NAME}/`)[1];
-  if (!key) return;
-
-  await s3Client.send(
-    new DeleteObjectCommand({
+  try {
+    const command = new GetObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
-    })
-  );
+    });
+
+    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
+    return signedUrl;
+  } catch (error) {
+    console.error('Failed to generate signed URL for key:', key, error);
+    return '';
+  }
 }
 
-export function getImageUrl(key: string): string {
-  return `${getPublicBaseUrl()}/${key}`;
+/**
+ * Delete an image from S3
+ * @param urlOrKey - Either a full URL or just the S3 key
+ */
+export async function deleteImage(urlOrKey: string): Promise<void> {
+  const key = extractKey(urlOrKey);
+  if (!key) return;
+
+  try {
+    await s3Client.send(
+      new DeleteObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: key,
+      })
+    );
+  } catch (error) {
+    console.error('Failed to delete image:', key, error);
+  }
 }
