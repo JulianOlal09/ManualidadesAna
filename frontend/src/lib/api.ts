@@ -26,6 +26,12 @@ class ApiClient {
             config.headers.Authorization = `Bearer ${token}`;
           }
         }
+        
+        // Remove Content-Type if sending FormData (let browser set it with boundary)
+        if (config.data instanceof FormData && config.headers) {
+          delete config.headers['Content-Type'];
+        }
+        
         return config;
       },
       (error: AxiosError) => {
