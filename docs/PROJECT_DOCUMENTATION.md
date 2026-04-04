@@ -90,7 +90,11 @@ Se implementó un sistema de redirección inteligente utilizando el parámetro `
 ### 6.1 Acceso LAN
 - **Backend**: Escucha en `http://192.168.1.30:3001`.
 - **CORS**: Configurado para permitir cualquier origen (`*`) con credenciales, facilitando el acceso desde dispositivos móviles en la misma red.
-- **Frontend**: Configurado mediante `NEXT_PUBLIC_API_URL` en `.env.local`.
+- **Frontend**: Configurado mediante `NEXT_PUBLIC_API_URL` como variable de entorno en el proveedor de deploy.
+
+### 6.2 Manejo de secretos
+- Los archivos `.env` no se versionan en el repositorio.
+- Las credenciales se gestionan exclusivamente como variables de entorno en Railway/Vercel.
 
 ---
 
@@ -105,9 +109,14 @@ Se implementó un sistema de redirección inteligente utilizando el parámetro `
 
 #### Variables de Entorno
 ```bash
-DATABASE_URL=mysql://root:password@host:port/railway
+DATABASE_URL=mysql://user:password@host:port/railway
 JWT_SECRET=your-secret-key
 PORT=3001
+AWS_ACCESS_KEY_ID=your-access-key
+AWS_SECRET_ACCESS_KEY=your-secret-key
+AWS_ENDPOINT_URL=https://t3.storageapi.dev
+AWS_DEFAULT_REGION=auto
+AWS_S3_BUCKET_NAME=your-bucket
 ```
 
 #### Proceso de Deploy
@@ -175,19 +184,16 @@ Para conectarte y visualizar los datos de producción:
 
 **Opción 1: Prisma Studio (Recomendada)**
 ```bash
-# En backend/.env temporal, configurar:
-DATABASE_URL="mysql://root:password@host:port/railway"
-
-# Ejecutar:
+# Configurar DATABASE_URL en variables de entorno locales (no commitear)
 npx prisma studio
 # Abre http://localhost:5555
 ```
 
 **Opción 2: Cliente MySQL**
 Usar MySQL Workbench u otro cliente con las credenciales de Railway:
-- Host: `hopper.proxy.rlwy.net` (o tu host)
-- Port: `57491` (o tu puerto)
-- Username: `root`
+- Host: (desde Railway)
+- Port: (desde Railway)
+- Username: (desde Railway)
 - Password: (desde Railway)
 - Database: `railway`
 
@@ -242,16 +248,16 @@ Agregar estas variables en **Railway → ManualidadesAna (Backend) → Variables
 
 | Variable | Valor |
 |----------|-------|
-| `BUCKET_NAME` | `portable-tote-zktyu-xjvyf` |
-| `BUCKET_REGION` | `auto` |
-| `BUCKET_ENDPOINT` | `https://t3.storageapi.dev` |
-| `BUCKET_ACCESS_KEY` | `tid_KdLrqogvkkYJWQfERNSqhGjSrhjgsXr_mqqFIOEcttWZTglLZq` |
-| `BUCKET_SECRET_KEY` | `tsec_QlCKIS91bJbuevy3trYilhI4qRby_m3vEnBYc6ro3VnlrMH3fbpbNq0oqCEMer1msDJOTo` |
+| `AWS_S3_BUCKET_NAME` | `your-bucket` |
+| `AWS_DEFAULT_REGION` | `auto` |
+| `AWS_ENDPOINT_URL` | `https://t3.storageapi.dev` |
+| `AWS_ACCESS_KEY_ID` | `your-access-key` |
+| `AWS_SECRET_ACCESS_KEY` | `your-secret-key` |
 
-### 10.3URL Pública de Imágenes
+### 10.3 URL Pública de Imágenes
 La URL pública se genera automáticamente:
 ```
-https://portable-tote-zktyu-xjvyf.t3.storageapi.dev/products/uuid.jpg
+https://your-bucket.t3.storageapi.dev/products/uuid.jpg
 ```
 
 ### 10.4 Dependencias
