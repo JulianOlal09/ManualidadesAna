@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, PutBucketPolicyCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 
 const s3Client = new S3Client({
@@ -21,6 +21,34 @@ function getPublicBaseUrl(): string {
   const endpoint = process.env.AWS_ENDPOINT_URL || '';
   const endpointHost = endpoint.replace(/^https?:\/\//, '');
   return `https://${BUCKET_NAME}.${endpointHost}`;
+}
+
+export async function setBucketPublicPolicy(): Promise<void> {
+  const policy = {
+    Version: '2012-10-17',
+    Statement: [
+      {
+        Sid: 'PublicReadGetObject',
+        Effect: 'Allow',
+        Principal: '*',
+        Action: 's3:GetObject',
+        Resource: `arn:aws:s3:::${BUCKET_NAME}/*`,
+      },
+    ],
+  };
+
+  try {
+    await s3Client.send(
+      new PutBucketPolicyCommand({
+        Bucket: BUCKET_NAME,
+        Policy: JSON.stringify(policy),
+      })
+    );
+    console.log(`✓ Bucket policy set for ${BUCKET_NAME} - public read enabled`);
+  } catch (error) {
+    console.error('Failed to set bucket policy:', error);
+    // Don't throw - this is not critical for server startup
+  }
 }
 
 export async function uploadImage(file: Buffer, originalFilename: string): Promise<string> {
