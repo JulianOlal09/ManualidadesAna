@@ -226,3 +226,90 @@ npm run dev        # Puerto 3000
 - **Navbar**: Diseño moderno con gradiente (rosa-púrpura-azul), logo de la marca (`Logo-Letras.png`) y posición sticky.
 - **Acceso Público**: Todo el catálogo es navegable sin cuenta.
 - **Restricción de Admin**: Los administradores no pueden usar el carrito ni realizar compras para evitar inconsistencias en el sistema.
+
+---
+
+## 10. Sistema de Imágenes con S3 (Railway Storage)
+
+### 10.1 Configuración del Bucket
+El proyecto utiliza Railway Storage (Tigris) para almacenar imágenes de productos.
+
+**Bucket Name**: `portable-tote-zktyu-xjvyf`
+**Endpoint**: `https://t3.storageapi.dev`
+
+### 10.2 Variables de Entorno en Railway
+Agregar estas variables en **Railway → ManualidadesAna (Backend) → Variables**:
+
+| Variable | Valor |
+|----------|-------|
+| `BUCKET_NAME` | `portable-tote-zktyu-xjvyf` |
+| `BUCKET_REGION` | `auto` |
+| `BUCKET_ENDPOINT` | `https://t3.storageapi.dev` |
+| `BUCKET_ACCESS_KEY` | `tid_KdLrqogvkkYJWQfERNSqhGjSrhjgsXr_mqqFIOEcttWZTglLZq` |
+| `BUCKET_SECRET_KEY` | `tsec_QlCKIS91bJbuevy3trYilhI4qRby_m3vEnBYc6ro3VnlrMH3fbpbNq0oqCEMer1msDJOTo` |
+
+### 10.3URL Pública de Imágenes
+La URL pública se genera automáticamente:
+```
+https://portable-tote-zktyu-xjvyf.t3.storageapi.dev/products/uuid.jpg
+```
+
+### 10.4 Dependencias
+```bash
+npm install @aws-sdk/client-s3 uuid multer
+npm install -D @types/uuid @types/multer
+```
+
+### 10.5 Archivos del Sistema de Storage
+- **Backend**: `backend/src/services/storage.service.ts` - Funciones `uploadImage`, `deleteImage`, `getPublicBaseUrl`
+- **Rutas**: `backend/src/routes/product.routes.ts` - Middleware `multer` para multipart/form-data
+
+### 10.6 Uso desde el Frontend
+- El formulario de productos ahora permite subir archivos de imagen
+- Se envía mediante `FormData` al endpoint `/products`
+- Preview de imagen en tiempo real
+
+---
+
+## 11. Mejoras del Panel de Administración
+
+### 11.1 Dashboard KPIs
+El dashboard `/admin` incluye 5 tarjetas de KPIs:
+- **Pedidos Pendientes**: Cantidad de pedidos en estado PENDIENTE
+- **Ventas Totales**: Suma de pedidos en estado ENTREGADO
+- **Productos en Stock**: Productos con stock > 0
+- **Insumos Registrados**: Total de insumos en la base de datos
+- **Costo Insumos**: Costo total del inventario de insumos
+
+### 11.2 Notificaciones WhatsApp
+Al confirmar un pedido, se abre WhatsApp con los detalles del pedido:
+- Usa `wa.me` para abrir la app en móvil o WhatsApp Web en desktop
+- Variable de entorno: `NEXT_PUBLIC_WHATSAPP_NUMBER`
+
+### 11.3 Mejoras de UI
+- **Footer**: Visible en versión móvil, incluye links a redes sociales (Instagram, TikTok, Facebook)
+- **Modales**: Fondo con blur (bg-gray-900/30) en lugar de negro sólido
+- **Iconos**: Alineados correctamente en las tarjetas KPI
+- **Links de navegación**: Eliminar hipervínculos "Volver al Panel"
+
+---
+
+## 12. Comandos de Desarrollo
+
+### Backend
+```bash
+cd backend
+npm run dev        # Puerto 3001
+```
+
+### Frontend
+```bash
+cd frontend
+npm run dev        # Puerto 3000
+```
+
+### Verificar Build
+```bash
+cd backend && npx tsc --noEmit    # Sin errores TypeScript
+cd frontend && npm run build      # Build exitoso
+```
