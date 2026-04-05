@@ -246,7 +246,7 @@ export default function OrderDetailPage() {
             <div className="w-20 h-20 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
               {(item.product?.imageUrl1 || item.product?.imageUrl2 || item.product?.imageUrl3) ? (
                 <img
-                  src={item.product.imageUrl1 || item.product.imageUrl2 || item.product.imageUrl3}
+                  src={item.product.imageUrl1 || item.product.imageUrl2 || item.product.imageUrl3 || undefined}
                   alt={item.product.name}
                   className="w-full h-full object-cover rounded"
                 />

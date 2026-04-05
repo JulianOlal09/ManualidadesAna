@@ -135,7 +135,7 @@ function ProductsContent() {
                 <div className="aspect-square bg-gray-100 rounded-t-lg flex items-center justify-center overflow-hidden">
                   {(product.imageUrl1 || product.imageUrl2 || product.imageUrl3) ? (
                     <img
-                      src={product.imageUrl1 || product.imageUrl2 || product.imageUrl3}
+                      src={product.imageUrl1 || product.imageUrl2 || product.imageUrl3 || undefined}
                       alt={product.name}
                       className="w-full h-full object-cover rounded-t-lg"
                     />

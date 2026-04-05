@@ -97,7 +97,7 @@ export default function FeaturedCarousel() {
                   <div className="aspect-square bg-gray-100 rounded-2xl flex items-center justify-center overflow-hidden shadow-md">
                     {(product.imageUrl1 || product.imageUrl2 || product.imageUrl3) ? (
                       <img
-                        src={product.imageUrl1 || product.imageUrl2 || product.imageUrl3}
+                        src={product.imageUrl1 || product.imageUrl2 || product.imageUrl3 || undefined}
                         alt={product.name}
                         className="w-full h-full object-cover"
                       />

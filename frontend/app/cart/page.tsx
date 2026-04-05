@@ -143,7 +143,7 @@ export default function CartPage() {
                     <div className="w-16 h-16 sm:w-24 sm:h-24 flex-shrink-0 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
                       {(item.product.imageUrl1 || item.product.imageUrl2 || item.product.imageUrl3) ? (
                         <img
-                          src={item.product.imageUrl1 || item.product.imageUrl2 || item.product.imageUrl3}
+                          src={item.product.imageUrl1 || item.product.imageUrl2 || item.product.imageUrl3 || undefined}
                           alt={item.product.name}
                           className="w-full h-full object-cover"
                         />
