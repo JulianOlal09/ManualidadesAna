@@ -1,28 +1,9 @@
 import { prisma } from '../lib/prisma.js';
 import { Product, Category } from '@prisma/client';
-import { getSignedImageUrl } from './storage.service.js';
 
 export type ProductWithRelations = Product & {
   category?: Category | null;
 };
-
-/**
- * Transform product imageUrl (S3 key) to signed URL
- */
-async function transformProductImage<T extends Product>(product: T): Promise<T> {
-  if (product.imageUrl) {
-    const signedUrl = await getSignedImageUrl(product.imageUrl);
-    return { ...product, imageUrl: signedUrl };
-  }
-  return product;
-}
-
-/**
- * Transform array of products with signed URLs
- */
-async function transformProductImages<T extends Product>(products: T[]): Promise<T[]> {
-  return Promise.all(products.map(transformProductImage));
-}
 
 export interface CreateProductInput {
   name: string;
@@ -92,11 +73,8 @@ export async function getAllProducts(
     }),
   ]);
 
-  // Transform imageUrl keys to signed URLs
-  const productsWithSignedUrls = await transformProductImages(products);
-
   return {
-    data: productsWithSignedUrls as ProductWithRelations[],
+    data: products as ProductWithRelations[],
     total,
     page,
     limit,
@@ -112,10 +90,7 @@ export async function getProductById(id: number): Promise<ProductWithRelations |
     },
   }) as ProductWithRelations | null;
 
-  if (!product) return null;
-
-  // Transform imageUrl key to signed URL
-  return transformProductImage(product);
+  return product;
 }
 
 function generateSKU(name: string): string {
@@ -160,8 +135,7 @@ export async function createProduct(input: CreateProductInput): Promise<Product>
     },
   });
 
-  // Transform imageUrl key to signed URL before returning
-  return transformProductImage(product);
+  return product;
 }
 
 export async function updateProduct(id: number, input: UpdateProductInput): Promise<Product> {
@@ -215,8 +189,7 @@ export async function updateProduct(id: number, input: UpdateProductInput): Prom
     data: updateData,
   });
 
-  // Transform imageUrl key to signed URL before returning
-  return transformProductImage(product);
+  return product;
 }
 
 export async function deleteProduct(id: number): Promise<Product> {
@@ -248,8 +221,7 @@ export async function toggleProductActive(id: number): Promise<Product> {
     data: { isActive: !product.isActive },
   });
 
-  // Transform imageUrl key to signed URL before returning
-  return transformProductImage(updatedProduct);
+  return updatedProduct;
 }
 
 export async function adjustStock(productId: number, adjustment: number): Promise<Product> {

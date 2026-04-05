@@ -1,5 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
 
 const s3Client = new S3Client({
@@ -9,21 +8,11 @@ const s3Client = new S3Client({
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
   },
-  forcePathStyle: true,
+  forcePathStyle: false,
 });
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'portable-tote-zktyu-xjvyf';
-
-function getPublicBaseUrl(): string {
-  if (process.env.AWS_PUBLIC_URL) {
-    return process.env.AWS_PUBLIC_URL.replace(/\/$/, '');
-  }
-
-  const endpoint = process.env.AWS_ENDPOINT_URL || '';
-  const endpointHost = endpoint.replace(/^https?:\/\//, '');
-  const bucketName = process.env.AWS_S3_BUCKET_NAME || 'portable-tote-zktyu-xjvyf';
-  return `https://${bucketName}.${endpointHost}`;
-}
+const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'manualidades-ana-fotos';
+const R2_PUBLIC_URL = 'https://pub-404039448812485dbc9edd916a675832.r2.dev';
 
 export function extractKey(urlOrKey: string): string {
   if (!urlOrKey) return '';
@@ -52,25 +41,7 @@ export async function uploadImage(file: Buffer, originalFilename: string): Promi
     })
   );
 
-  return `${getPublicBaseUrl()}/${key}`;
-}
-
-export async function getSignedImageUrl(urlOrKey: string): Promise<string> {
-  const key = extractKey(urlOrKey);
-  if (!key) return '';
-
-  try {
-    const command = new GetObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: key,
-    });
-
-    const signedUrl = await getSignedUrl(s3Client, command, { expiresIn: 3600 });
-    return signedUrl;
-  } catch (error) {
-    console.error('Failed to generate signed URL for key:', key, error);
-    return '';
-  }
+  return `${R2_PUBLIC_URL}/${key}`;
 }
 
 export async function deleteImage(urlOrKey: string): Promise<void> {

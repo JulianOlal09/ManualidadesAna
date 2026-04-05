@@ -248,16 +248,17 @@ Agregar estas variables en **Railway → ManualidadesAna (Backend) → Variables
 
 | Variable | Valor |
 |----------|-------|
-| `AWS_S3_BUCKET_NAME` | `your-bucket` |
+| `AWS_S3_BUCKET_NAME` | Tu bucket de Railway Storage |
 | `AWS_DEFAULT_REGION` | `auto` |
 | `AWS_ENDPOINT_URL` | `https://t3.storageapi.dev` |
-| `AWS_ACCESS_KEY_ID` | `your-access-key` |
-| `AWS_SECRET_ACCESS_KEY` | `your-secret-key` |
+| `AWS_ACCESS_KEY_ID` | Tu access key de Railway Storage |
+| `AWS_SECRET_ACCESS_KEY` | Tu secret key de Railway Storage |
+| `AWS_PUBLIC_URL` | (Opcional) URL pública custom |
 
 ### 10.3 URL Pública de Imágenes
 La URL pública se genera automáticamente:
 ```
-https://your-bucket.t3.storageapi.dev/products/uuid.jpg
+https://tu-bucket.t3.storageapi.dev/products/uuid.jpg
 ```
 
 ### 10.4 Dependencias
