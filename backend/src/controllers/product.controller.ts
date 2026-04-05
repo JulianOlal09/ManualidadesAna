@@ -98,7 +98,7 @@ export async function createProductController(
 ): Promise<void> {
   try {
     const { name, description, categoryId, price, sku, stock } = req.body;
-    const file = req.file;
+    const files = req.files as Express.Multer.File[] | undefined;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       res.status(400).json({
@@ -111,9 +111,15 @@ export async function createProductController(
       return;
     }
 
-    let imageUrl: string | undefined;
-    if (file) {
-      imageUrl = await uploadImage(file.buffer, file.originalname);
+    // Upload images (max 3)
+    let imageUrl1: string | undefined;
+    let imageUrl2: string | undefined;
+    let imageUrl3: string | undefined;
+
+    if (files && files.length > 0) {
+      if (files[0]) imageUrl1 = await uploadImage(files[0].buffer, files[0].originalname);
+      if (files[1]) imageUrl2 = await uploadImage(files[1].buffer, files[1].originalname);
+      if (files[2]) imageUrl3 = await uploadImage(files[2].buffer, files[2].originalname);
     }
 
     const categoryIdNumber = categoryId ? Number(categoryId) : undefined;
@@ -135,7 +141,9 @@ export async function createProductController(
       name: name.trim(),
       description,
       categoryId: categoryIdNumber,
-      imageUrl,
+      imageUrl1,
+      imageUrl2,
+      imageUrl3,
       price: priceNumber,
       sku,
       stock: stockNumber,
@@ -179,7 +187,7 @@ export async function updateProductController(
 ): Promise<void> {
   try {
     const idParam = req.params.id;
-    const file = req.file;
+    const files = req.files as Express.Multer.File[] | undefined;
     
     if (!idParam || typeof idParam !== 'string') {
       res.status(400).json({
@@ -205,13 +213,18 @@ export async function updateProductController(
       return;
     }
 
-    const { name, description, categoryId, imageUrl, price, sku, stock, marginPercentage, deleteImage: deleteImageFlag } = req.body;
+    const { 
+      name, description, categoryId, price, sku, stock, marginPercentage,
+      deleteImage1, deleteImage2, deleteImage3 
+    } = req.body;
 
     const updateData: {
       name?: string;
       description?: string | null;
       categoryId?: number | null;
-      imageUrl?: string | null;
+      imageUrl1?: string | null;
+      imageUrl2?: string | null;
+      imageUrl3?: string | null;
       price?: number;
       sku?: string | null;
       stock?: number;
@@ -253,22 +266,34 @@ export async function updateProductController(
       }
     }
 
-    // Handle image: new file upload, delete flag, or existing URL
-    if (file) {
-      // Get existing product to delete old image
-      const existingProduct = await import('../services/product.service.js').then(m => m.getProductById(id));
-      if (existingProduct?.imageUrl) {
-        await deleteImage(existingProduct.imageUrl);
-      }
-      updateData.imageUrl = await uploadImage(file.buffer, file.originalname);
-    } else if (deleteImageFlag === 'true') {
-      const existingProduct = await import('../services/product.service.js').then(m => m.getProductById(id));
-      if (existingProduct?.imageUrl) {
-        await deleteImage(existingProduct.imageUrl);
-      }
-      updateData.imageUrl = null;
-    } else if (imageUrl !== undefined) {
-      updateData.imageUrl = imageUrl;
+    // Get existing product for image handling
+    const existingProduct = await import('../services/product.service.js').then(m => m.getProductById(id));
+    
+    // Handle new file uploads
+    if (files && files.length > 0) {
+      // Delete old images that will be replaced
+      if (files[0] && existingProduct?.imageUrl1) await deleteImage(existingProduct.imageUrl1);
+      if (files[1] && existingProduct?.imageUrl2) await deleteImage(existingProduct.imageUrl2);
+      if (files[2] && existingProduct?.imageUrl3) await deleteImage(existingProduct.imageUrl3);
+      
+      // Upload new images
+      if (files[0]) updateData.imageUrl1 = await uploadImage(files[0].buffer, files[0].originalname);
+      if (files[1]) updateData.imageUrl2 = await uploadImage(files[1].buffer, files[1].originalname);
+      if (files[2]) updateData.imageUrl3 = await uploadImage(files[2].buffer, files[2].originalname);
+    }
+    
+    // Handle delete flags
+    if (deleteImage1 === 'true') {
+      if (existingProduct?.imageUrl1) await deleteImage(existingProduct.imageUrl1);
+      updateData.imageUrl1 = null;
+    }
+    if (deleteImage2 === 'true') {
+      if (existingProduct?.imageUrl2) await deleteImage(existingProduct.imageUrl2);
+      updateData.imageUrl2 = null;
+    }
+    if (deleteImage3 === 'true') {
+      if (existingProduct?.imageUrl3) await deleteImage(existingProduct.imageUrl3);
+      updateData.imageUrl3 = null;
     }
 
     if (price !== undefined) {
@@ -400,11 +425,11 @@ export async function deleteProductController(
       return;
     }
 
-    // Get product to delete image
+    // Get product to delete images
     const existingProduct = await import('../services/product.service.js').then(m => m.getProductById(id));
-    if (existingProduct?.imageUrl) {
-      await deleteImage(existingProduct.imageUrl);
-    }
+    if (existingProduct?.imageUrl1) await deleteImage(existingProduct.imageUrl1);
+    if (existingProduct?.imageUrl2) await deleteImage(existingProduct.imageUrl2);
+    if (existingProduct?.imageUrl3) await deleteImage(existingProduct.imageUrl3);
 
     await deleteProduct(id);
 

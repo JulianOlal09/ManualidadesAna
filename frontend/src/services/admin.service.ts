@@ -5,7 +5,6 @@ export interface CreateProductInput {
   name: string;
   description?: string;
   categoryId?: number;
-  imageUrl?: string;
   price?: number;
   sku?: string;
   stock?: number;
@@ -15,12 +14,13 @@ export interface UpdateProductInput {
   name?: string;
   description?: string;
   categoryId?: number;
-  imageUrl?: string;
   price?: number;
   sku?: string;
   stock?: number;
   isActive?: boolean;
-  deleteImage?: boolean;
+  deleteImage1?: boolean;
+  deleteImage2?: boolean;
+  deleteImage3?: boolean;
 }
 
 export interface ProductWithDetails extends Product {
@@ -54,7 +54,7 @@ export const adminProductService = {
     throw new Error(response.data.error?.message || 'Failed to fetch product');
   },
 
-  async create(data: CreateProductInput, imageFile?: File): Promise<Product> {
+  async create(data: CreateProductInput, imageFiles?: File[]): Promise<Product> {
     const formData = new FormData();
     formData.append('name', data.name);
     if (data.description) formData.append('description', data.description);
@@ -62,7 +62,13 @@ export const adminProductService = {
     if (data.price !== undefined) formData.append('price', data.price.toString());
     if (data.sku) formData.append('sku', data.sku);
     if (data.stock !== undefined) formData.append('stock', data.stock.toString());
-    if (imageFile) formData.append('image', imageFile);
+    
+    // Add multiple images (max 3)
+    if (imageFiles && imageFiles.length > 0) {
+      imageFiles.forEach((file) => {
+        formData.append('images', file);
+      });
+    }
 
     const response = await apiClient.post<ApiResponse<Product>>('/products', formData);
     if (response.data.success && response.data.data) {
@@ -71,7 +77,7 @@ export const adminProductService = {
     throw new Error(response.data.error?.message || 'Failed to create product');
   },
 
-  async update(id: number, data: UpdateProductInput, imageFile?: File): Promise<Product> {
+  async update(id: number, data: UpdateProductInput, imageFiles?: File[]): Promise<Product> {
     const formData = new FormData();
     if (data.name) formData.append('name', data.name);
     if (data.description !== undefined) formData.append('description', data.description || '');
@@ -79,8 +85,16 @@ export const adminProductService = {
     if (data.price !== undefined) formData.append('price', data.price.toString());
     if (data.sku !== undefined) formData.append('sku', data.sku || '');
     if (data.stock !== undefined) formData.append('stock', data.stock.toString());
-    if (data.deleteImage) formData.append('deleteImage', 'true');
-    if (imageFile) formData.append('image', imageFile);
+    if (data.deleteImage1) formData.append('deleteImage1', 'true');
+    if (data.deleteImage2) formData.append('deleteImage2', 'true');
+    if (data.deleteImage3) formData.append('deleteImage3', 'true');
+    
+    // Add multiple images (max 3)
+    if (imageFiles && imageFiles.length > 0) {
+      imageFiles.forEach((file) => {
+        formData.append('images', file);
+      });
+    }
 
     const response = await apiClient.put<ApiResponse<Product>>(`/products/${id}`, formData);
     if (response.data.success && response.data.data) {

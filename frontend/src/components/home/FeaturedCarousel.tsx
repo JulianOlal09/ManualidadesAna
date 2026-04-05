@@ -95,9 +95,9 @@ export default function FeaturedCarousel() {
                   className="block hover:opacity-90 transition-opacity"
                 >
                   <div className="aspect-square bg-gray-100 rounded-2xl flex items-center justify-center overflow-hidden shadow-md">
-                    {product.imageUrl ? (
+                    {(product.imageUrl1 || product.imageUrl2 || product.imageUrl3) ? (
                       <img
-                        src={product.imageUrl}
+                        src={product.imageUrl1 || product.imageUrl2 || product.imageUrl3}
                         alt={product.name}
                         className="w-full h-full object-cover"
                       />

@@ -54,7 +54,9 @@ model Product {
   name              String    @db.VarChar(200)
   description       String?   @db.Text
   categoryId        Int?
-  imageUrl          String?   @db.VarChar(500)
+  imageUrl1         String?   @db.VarChar(500)
+  imageUrl2         String?   @db.VarChar(500)
+  imageUrl3         String?   @db.VarChar(500)
   price             Decimal?  @db.Decimal(10, 2)
   sku               String?   @unique @db.VarChar(50)
   stock             Int       @default(0)

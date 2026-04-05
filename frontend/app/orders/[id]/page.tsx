@@ -244,9 +244,9 @@ export default function OrderDetailPage() {
         {editedItems.map((item, index) => (
           <div key={item.id} className="bg-white rounded-lg shadow-sm p-4 flex gap-4 items-center">
             <div className="w-20 h-20 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
-              {item.product?.imageUrl ? (
+              {(item.product?.imageUrl1 || item.product?.imageUrl2 || item.product?.imageUrl3) ? (
                 <img
-                  src={item.product.imageUrl}
+                  src={item.product.imageUrl1 || item.product.imageUrl2 || item.product.imageUrl3}
                   alt={item.product.name}
                   className="w-full h-full object-cover rounded"
                 />

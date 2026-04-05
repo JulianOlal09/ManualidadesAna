@@ -9,7 +9,9 @@ export interface CreateProductInput {
   name: string;
   description?: string;
   categoryId?: number;
-  imageUrl?: string;
+  imageUrl1?: string;
+  imageUrl2?: string;
+  imageUrl3?: string;
   price: number;
   sku?: string;
   stock?: number;
@@ -20,7 +22,9 @@ export interface UpdateProductInput {
   name?: string;
   description?: string | null;
   categoryId?: number | null;
-  imageUrl?: string | null;
+  imageUrl1?: string | null;
+  imageUrl2?: string | null;
+  imageUrl3?: string | null;
   price?: number;
   sku?: string | null;
   stock?: number;
@@ -128,7 +132,9 @@ export async function createProduct(input: CreateProductInput): Promise<Product>
       name: input.name,
       description: input.description,
       categoryId: input.categoryId,
-      imageUrl: input.imageUrl,
+      imageUrl1: input.imageUrl1,
+      imageUrl2: input.imageUrl2,
+      imageUrl3: input.imageUrl3,
       price: input.price || 0,
       sku,
       stock: input.stock || 0,
@@ -168,7 +174,9 @@ export async function updateProduct(id: number, input: UpdateProductInput): Prom
     name?: string;
     description?: string | null;
     categoryId?: number | null;
-    imageUrl?: string | null;
+    imageUrl1?: string | null;
+    imageUrl2?: string | null;
+    imageUrl3?: string | null;
     price?: number;
     sku?: string | null;
     stock?: number;
@@ -178,7 +186,9 @@ export async function updateProduct(id: number, input: UpdateProductInput): Prom
   if (input.name !== undefined) updateData.name = input.name;
   if (input.description !== undefined) updateData.description = input.description;
   if (input.categoryId !== undefined) updateData.categoryId = input.categoryId;
-  if (input.imageUrl !== undefined) updateData.imageUrl = input.imageUrl;
+  if (input.imageUrl1 !== undefined) updateData.imageUrl1 = input.imageUrl1;
+  if (input.imageUrl2 !== undefined) updateData.imageUrl2 = input.imageUrl2;
+  if (input.imageUrl3 !== undefined) updateData.imageUrl3 = input.imageUrl3;
   if (input.price !== undefined) updateData.price = input.price;
   if (input.sku !== undefined) updateData.sku = input.sku;
   if (input.stock !== undefined) updateData.stock = input.stock;

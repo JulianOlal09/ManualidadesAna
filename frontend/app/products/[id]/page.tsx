@@ -17,6 +17,7 @@ export default function ProductDetailPage() {
   
   const [product, setProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [error, setError] = useState('');
@@ -60,7 +61,7 @@ export default function ProductDetailPage() {
           quantity,
           name: product.name,
           price: Number(product.price),
-          imageUrl: product.imageUrl || undefined,
+          imageUrl: product.imageUrl1 || product.imageUrl2 || product.imageUrl3 || undefined,
           stock: product.stock,
         });
       }
@@ -98,6 +99,15 @@ export default function ProductDetailPage() {
   const displayPrice = product.price ? Number(product.price) : 0;
   const isOutOfStock = product.stock === 0;
   const isLowStock = product.stock > 0 && product.stock <= 5;
+  
+  // Get available images
+  const availableImages = [
+    product.imageUrl1,
+    product.imageUrl2,
+    product.imageUrl3,
+  ].filter((url): url is string => !!url);
+  
+  const currentImage = availableImages[selectedImageIndex] || null;
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-8">
@@ -109,15 +119,41 @@ export default function ProductDetailPage() {
       </button>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
-        <div className="aspect-square sm:aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
-          {product.imageUrl ? (
-            <img
-              src={product.imageUrl}
-              alt={product.name}
-              className="w-full h-full object-cover rounded-lg"
-            />
-          ) : (
-            <span className="text-5xl sm:text-6xl text-gray-300">📦</span>
+        <div className="space-y-2">
+          {/* Main image */}
+          <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
+            {currentImage ? (
+              <img
+                src={currentImage}
+                alt={product.name}
+                className="w-full h-full object-cover rounded-lg"
+              />
+            ) : (
+              <span className="text-5xl sm:text-6xl text-gray-300">📦</span>
+            )}
+          </div>
+          
+          {/* Thumbnail gallery */}
+          {availableImages.length > 1 && (
+            <div className="flex gap-2">
+              {availableImages.map((imageUrl, index) => (
+                <button
+                  key={index}
+                  onClick={() => setSelectedImageIndex(index)}
+                  className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                    selectedImageIndex === index
+                      ? 'border-gray-300 shadow-md'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <img
+                    src={imageUrl}
+                    alt={`${product.name} - ${index + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
           )}
         </div>
 

@@ -133,9 +133,9 @@ function ProductsContent() {
                 className={`block bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow ${!product.isActive ? 'opacity-60' : ''}`}
               >
                 <div className="aspect-square bg-gray-100 rounded-t-lg flex items-center justify-center overflow-hidden">
-                  {product.imageUrl ? (
+                  {(product.imageUrl1 || product.imageUrl2 || product.imageUrl3) ? (
                     <img
-                      src={product.imageUrl}
+                      src={product.imageUrl1 || product.imageUrl2 || product.imageUrl3}
                       alt={product.name}
                       className="w-full h-full object-cover rounded-t-lg"
                     />

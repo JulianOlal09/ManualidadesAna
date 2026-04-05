@@ -25,10 +25,10 @@ export default function AdminProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState<ProductWithDetails | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   
-  const [productForm, setProductForm] = useState<CreateProductInput>({ name: '', description: '', categoryId: undefined, imageUrl: '', price: undefined, sku: '', stock: 0 });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
-  const [deleteImage, setDeleteImage] = useState(false);
+  const [productForm, setProductForm] = useState<CreateProductInput>({ name: '', description: '', categoryId: undefined, price: undefined, sku: '', stock: 0 });
+  const [imageFiles, setImageFiles] = useState<(File | null)[]>([null, null, null]);
+  const [previewUrls, setPreviewUrls] = useState<(string | null)[]>([null, null, null]);
+  const [deleteImages, setDeleteImages] = useState<boolean[]>([false, false, false]);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) router.push('/login');
@@ -66,10 +66,10 @@ export default function AdminProductsPage() {
   };
 
   const openCreateProduct = () => {
-    setProductForm({ name: '', description: '', categoryId: undefined, imageUrl: '', price: undefined, sku: '', stock: 0 });
-    setImageFile(null);
-    setPreviewUrl('');
-    setDeleteImage(false);
+    setProductForm({ name: '', description: '', categoryId: undefined, price: undefined, sku: '', stock: 0 });
+    setImageFiles([null, null, null]);
+    setPreviewUrls([null, null, null]);
+    setDeleteImages([false, false, false]);
     setModalMode('createProduct');
   };
 
@@ -79,41 +79,67 @@ export default function AdminProductsPage() {
       name: product.name,
       description: product.description || '',
       categoryId: product.categoryId || undefined,
-      imageUrl: product.imageUrl || '',
       price: product.price ?? undefined,
       sku: product.sku || '',
       stock: product.stock,
     });
-    setImageFile(null);
-    setPreviewUrl(product.imageUrl || '');
-    setDeleteImage(false);
+    setImageFiles([null, null, null]);
+    setPreviewUrls([product.imageUrl1 || null, product.imageUrl2 || null, product.imageUrl3 || null]);
+    setDeleteImages([false, false, false]);
     setModalMode('editProduct');
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setImageFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-      setDeleteImage(false);
+      const newFiles = [...imageFiles];
+      const newPreviews = [...previewUrls];
+      const newDeletes = [...deleteImages];
+      
+      newFiles[index] = file;
+      newPreviews[index] = URL.createObjectURL(file);
+      newDeletes[index] = false;
+      
+      setImageFiles(newFiles);
+      setPreviewUrls(newPreviews);
+      setDeleteImages(newDeletes);
     }
   };
 
-  const handleDeleteImageClick = () => {
-    setImageFile(null);
-    setPreviewUrl('');
-    setDeleteImage(true);
+  const handleDeleteImageClick = (index: number) => {
+    const newFiles = [...imageFiles];
+    const newPreviews = [...previewUrls];
+    const newDeletes = [...deleteImages];
+    
+    newFiles[index] = null;
+    newPreviews[index] = null;
+    newDeletes[index] = true;
+    
+    setImageFiles(newFiles);
+    setPreviewUrls(newPreviews);
+    setDeleteImages(newDeletes);
   };
 
   const handleSaveProduct = async () => {
     setIsSaving(true);
     setError('');
     try {
+      const filesToUpload = imageFiles.filter((f): f is File => f !== null);
+      
       if (modalMode === 'createProduct') {
-        await adminProductService.create(productForm, imageFile || undefined);
+        await adminProductService.create(productForm, filesToUpload.length > 0 ? filesToUpload : undefined);
         setSuccess('Producto creado correctamente');
       } else if (modalMode === 'editProduct' && selectedProduct) {
-        await adminProductService.update(selectedProduct.id, { ...productForm, deleteImage }, imageFile || undefined);
+        await adminProductService.update(
+          selectedProduct.id, 
+          { 
+            ...productForm, 
+            deleteImage1: deleteImages[0],
+            deleteImage2: deleteImages[1],
+            deleteImage3: deleteImages[2],
+          }, 
+          filesToUpload.length > 0 ? filesToUpload : undefined
+        );
         setSuccess('Producto actualizado correctamente');
       }
       closeModal();
@@ -128,9 +154,9 @@ export default function AdminProductsPage() {
   const closeModal = () => {
     setModalMode(null);
     setSelectedProduct(null);
-    setImageFile(null);
-    setPreviewUrl('');
-    setDeleteImage(false);
+    setImageFiles([null, null, null]);
+    setPreviewUrls([null, null, null]);
+    setDeleteImages([false, false, false]);
   };
 
   const handleDeleteProduct = async (id: number) => {
@@ -212,8 +238,8 @@ export default function AdminProductsPage() {
                 </span>
               </div>
               <div>
-                <span className="text-gray-500">Imagen:</span>
-                <span className="ml-1">{product.imageUrl ? '✓' : '-'}</span>
+                <span className="text-gray-500">Imágenes:</span>
+                <span className="ml-1">{[product.imageUrl1, product.imageUrl2, product.imageUrl3].filter(Boolean).length}/3</span>
               </div>
             </div>
           </div>
@@ -307,37 +333,42 @@ export default function AdminProductsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">Imagen</label>
-                {!previewUrl && !(modalMode === 'editProduct' && productForm.imageUrl) ? (
-                  <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer">
-                    <svg className="w-12 h-12 mx-auto text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                    </svg>
-                    <p className="text-sm text-gray-500">Arrastra una imagen o haz clic para seleccionar</p>
-                    <input 
-                      type="file" 
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                  </div>
-                ) : (
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
-                    <div className="relative inline-block">
-                      <img src={previewUrl || productForm.imageUrl} alt={previewUrl ? "Preview" : "Current"} className="w-40 h-40 object-cover rounded-lg mx-auto" />
-                      {previewUrl && (
-                        <button
-                          type="button"
-                          onClick={handleDeleteImageClick}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
-                        >
-                          ×
-                        </button>
+                <label className="block text-xs md:text-sm font-medium text-gray-700 mb-1">Imágenes (máx. 3)</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[0, 1, 2].map((index) => (
+                    <div key={index}>
+                      {!previewUrls[index] ? (
+                        <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-2 text-center hover:bg-gray-50 transition-colors cursor-pointer aspect-square flex items-center justify-center">
+                          <div className="text-center">
+                            <svg className="w-8 h-8 mx-auto text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            <p className="text-xs text-gray-500">{index + 1}</p>
+                          </div>
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => handleImageChange(index, e)}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                        </div>
+                      ) : (
+                        <div className="relative border-2 border-dashed border-gray-300 rounded-lg p-2 aspect-square">
+                          <img src={previewUrls[index]!} alt={`Imagen ${index + 1}`} className="w-full h-full object-cover rounded" />
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteImageClick(index)}
+                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                            title="Eliminar imagen"
+                          >
+                            ×
+                          </button>
+                        </div>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">{previewUrl ? 'Nueva imagen' : 'Imagen actual'}</p>
-                  </div>
-                )}
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Sube hasta 3 imágenes del producto</p>
               </div>
               <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <div>
