@@ -3,25 +3,25 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 
 const s3Client = new S3Client({
-  endpoint: process.env.BUCKET_ENDPOINT,
-  region: process.env.BUCKET_REGION || 'us-east-1',
+  endpoint: process.env.AWS_ENDPOINT_URL,
+  region: process.env.AWS_DEFAULT_REGION || 'auto',
   credentials: {
-    accessKeyId: process.env.BUCKET_ACCESS_KEY || '',
-    secretAccessKey: process.env.BUCKET_SECRET_KEY || '',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
   },
   forcePathStyle: true,
 });
 
-const BUCKET_NAME = process.env.BUCKET_NAME || 'portable-tote-zktyu-xjvyf';
+const BUCKET_NAME = process.env.AWS_S3_BUCKET_NAME || 'portable-tote-zktyu-xjvyf';
 
 function getPublicBaseUrl(): string {
-  if (process.env.BUCKET_PUBLIC_URL) {
-    return process.env.BUCKET_PUBLIC_URL.replace(/\/$/, '');
+  if (process.env.AWS_PUBLIC_URL) {
+    return process.env.AWS_PUBLIC_URL.replace(/\/$/, '');
   }
 
-  const endpoint = process.env.BUCKET_ENDPOINT || '';
+  const endpoint = process.env.AWS_ENDPOINT_URL || '';
   const endpointHost = endpoint.replace(/^https?:\/\//, '');
-  const bucketName = process.env.BUCKET_NAME || 'portable-tote-zktyu-xjvyf';
+  const bucketName = process.env.AWS_S3_BUCKET_NAME || 'portable-tote-zktyu-xjvyf';
   return `https://${bucketName}.${endpointHost}`;
 }
 
