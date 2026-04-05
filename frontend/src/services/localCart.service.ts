@@ -31,6 +31,7 @@ export const localCartService = {
     }
     
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    window.dispatchEvent(new CustomEvent('cart-updated'));
   },
 
   // Actualizar cantidad
@@ -41,6 +42,7 @@ export const localCartService = {
     if (item) {
       item.quantity = quantity;
       localStorage.setItem(CART_KEY, JSON.stringify(cart));
+      window.dispatchEvent(new CustomEvent('cart-updated'));
     }
   },
 
@@ -48,11 +50,13 @@ export const localCartService = {
   removeItem(productId: number): void {
     const cart = this.getCart().filter((i) => i.productId !== productId);
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    window.dispatchEvent(new CustomEvent('cart-updated'));
   },
 
   // Vaciar carrito
   clearCart(): void {
     localStorage.removeItem(CART_KEY);
+    window.dispatchEvent(new CustomEvent('cart-updated'));
   },
 
   // Obtener total

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import axios from 'axios';
 import { useAuth } from '@/context/AuthContext';
 import localCartService, { LocalCartItem } from '@/services/localCart.service';
 import cartService from '@/services/cart.service';
@@ -40,6 +41,10 @@ export default function CartPage() {
         setLocalItems(cart);
       }
     } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 401) {
+        setServerItems([]);
+        return;
+      }
       console.error('Error loading cart:', err);
     } finally {
       setIsLoading(false);
@@ -132,7 +137,7 @@ export default function CartPage() {
               return (
                 <div
                   key={item.productId}
-                  className="bg-white rounded-lg shadow-sm border p-3 sm:p-4"
+                  className="bg-white rounded-lg shadow-sm p-3 sm:p-4"
                 >
                   <div className="flex gap-2 sm:gap-4">
                     <div className="w-16 h-16 sm:w-24 sm:h-24 flex-shrink-0 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
@@ -208,7 +213,7 @@ export default function CartPage() {
               return (
                 <div
                   key={item.productId}
-                  className="bg-white rounded-lg shadow-sm border p-3 sm:p-4"
+                  className="bg-white rounded-lg shadow-sm p-3 sm:p-4"
                 >
                   <div className="flex gap-2 sm:gap-4">
                     <div className="w-16 h-16 sm:w-24 sm:h-24 flex-shrink-0 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
@@ -278,7 +283,7 @@ export default function CartPage() {
         </div>
 
         <div className="lg:col-span-1 order-first lg:order-last">
-          <div className="bg-white rounded-lg shadow-sm border p-4 sm:p-6 sticky top-20">
+          <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 sticky top-20">
             <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-4">Resumen</h2>
             
             <div className="space-y-2 mb-4">
@@ -300,7 +305,7 @@ export default function CartPage() {
             </div>
 
             {!isAuthenticated && (
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="mb-4 p-3 bg-blue-50 rounded-lg">
                 <p className="text-xs sm:text-sm text-blue-800">
                   💡 Inicia sesión para finalizar
                 </p>

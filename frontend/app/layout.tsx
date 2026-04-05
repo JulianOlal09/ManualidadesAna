@@ -3,7 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import Navbar from "@/components/layout/Navbar";
-import FloatingCart from "@/components/layout/FloatingCart";
+import FloatingCart from "@/components/cart/FloatingCart";
 import Footer from "@/components/layout/Footer";
 import { Analytics } from "@vercel/analytics/next";
 

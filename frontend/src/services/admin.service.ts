@@ -33,10 +33,15 @@ export interface CategoryWithChildren extends Category {
 }
 
 export const adminProductService = {
-  async getAll(): Promise<ProductWithDetails[]> {
-    const response = await apiClient.get<ApiResponse<{ data: ProductWithDetails[]; total: number; page: number; limit: number; totalPages: number }>>('/products?includeInactive=true');
+  async getAll(page: number = 1, limit: number = 25): Promise<{ data: ProductWithDetails[]; total: number; page: number; limit: number; totalPages: number }> {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      includeInactive: 'true'
+    });
+    const response = await apiClient.get<ApiResponse<{ data: ProductWithDetails[]; total: number; page: number; limit: number; totalPages: number }>>(`/products?${params.toString()}`);
     if (response.data.success && response.data.data) {
-      return response.data.data.data;
+      return response.data.data;
     }
     throw new Error(response.data.error?.message || 'Failed to fetch products');
   },

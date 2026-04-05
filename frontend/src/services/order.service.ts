@@ -1,6 +1,13 @@
 import apiClient from '@/lib/api';
 import { ApiResponse, Order, OrderStatus, OrderStats } from '@/types';
 
+export interface SalesByMonth {
+  month: string;
+  year: number;
+  sales: number;
+  orders: number;
+}
+
 export const orderService = {
   async createOrder(): Promise<Order> {
     const response = await apiClient.post<ApiResponse<Order>>('/orders');
@@ -26,8 +33,12 @@ export const orderService = {
     throw new Error(response.data.error?.message || 'Failed to fetch order');
   },
 
-  async getAllOrders(): Promise<Order[]> {
-    const response = await apiClient.get<ApiResponse<Order[]>>('/admin/orders');
+  async getAllOrders(page: number = 1, limit: number = 25): Promise<{ data: Order[]; total: number; page: number; limit: number; totalPages: number }> {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+    });
+    const response = await apiClient.get<ApiResponse<{ data: Order[]; total: number; page: number; limit: number; totalPages: number }>>(`/admin/orders?${params.toString()}`);
     if (response.data.success && response.data.data) {
       return response.data.data;
     }
@@ -72,6 +83,14 @@ export const orderService = {
       return response.data.data;
     }
     throw new Error(response.data.error?.message || 'Failed to cancel order');
+  },
+
+  async getSalesByMonth(): Promise<SalesByMonth[]> {
+    const response = await apiClient.get<ApiResponse<SalesByMonth[]>>('/admin/orders/sales-by-month');
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    throw new Error(response.data.error?.message || 'Failed to fetch sales by month');
   },
 };
 

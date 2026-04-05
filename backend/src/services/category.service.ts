@@ -15,12 +15,9 @@ export interface UpdateCategoryInput {
 
 export async function getAllCategories(): Promise<Category[]> {
   return prisma.category.findMany({
-    where: { isActive: true },
     include: {
       parent: true,
-      children: {
-        where: { isActive: true },
-      },
+      children: true,
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -28,12 +25,10 @@ export async function getAllCategories(): Promise<Category[]> {
 
 export async function getCategoryById(id: number): Promise<Category | null> {
   return prisma.category.findFirst({
-    where: { id, isActive: true },
+    where: { id },
     include: {
       parent: true,
-      children: {
-        where: { isActive: true },
-      },
+      children: true,
     },
   });
 }

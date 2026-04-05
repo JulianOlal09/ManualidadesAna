@@ -34,10 +34,10 @@ export default function Home() {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-white/20 to-white/40" />
         <div className="relative text-center py-12 sm:py-16 px-4">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-800 mb-4 drop-shadow-sm">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-gray-800 mb-4">
             Manualidades Ana
           </h1>
-          <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-pink-600 mb-4 drop-shadow-sm">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-pink-600 mb-4">
             Arte que transforma espacios
           </h2>
           <p className="text-base sm:text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">
@@ -67,7 +67,7 @@ export default function Home() {
             <Link
               key={category.id}
               href={`/products?category=${category.id}`}
-              className="bg-white rounded-xl shadow-sm border p-3 sm:p-6 text-center hover:shadow-md transition-shadow"
+              className="bg-white rounded-xl shadow-sm p-3 sm:p-6 text-center hover:shadow-md transition-shadow"
             >
               <div className="w-10 h-10 sm:w-16 mx-auto mb-2 sm:mb-3 bg-pink-100 rounded-full flex items-center justify-center">
                 <svg className="w-5 h-5 sm:w-8 sm:h-8 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

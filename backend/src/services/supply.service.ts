@@ -34,33 +34,58 @@ export interface UpdateProductSupplyInput {
   quantity: number;
 }
 
-export async function getAllSupplies(): Promise<SupplyWithRelations[]> {
-  const supplies = await prisma.supply.findMany({
-    include: {
-      products: {
-        include: {
-          product: {
-            select: {
-              id: true,
-              name: true,
+export async function getAllSupplies(options?: { page?: number; limit?: number; search?: string }): Promise<{ data: SupplyWithRelations[]; total: number; page: number; limit: number; totalPages: number }> {
+  const page = options?.page || 1;
+  const limit = options?.limit || 25;
+  const skip = (page - 1) * limit;
+  const search = options?.search || '';
+
+  const where = search
+    ? {
+        OR: [
+          { name: { contains: search, mode: 'insensitive' } },
+        ],
+      }
+    : {};
+
+  const [data, total] = await Promise.all([
+    prisma.supply.findMany({
+      where,
+      include: {
+        products: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+              },
             },
           },
         },
       },
-    },
-  });
+      skip,
+      take: limit,
+    }),
+    prisma.supply.count({ where }),
+  ]);
 
-  return supplies.map(supply => ({
-    ...supply,
-    cost: supply.cost.toNumber(),
-    products: supply.products?.map(ps => ({
-      id: ps.id,
-      productId: ps.productId,
-      supplyId: ps.supplyId,
-      quantity: ps.quantity.toNumber(),
-      product: ps.product,
+  return {
+    data: data.map(supply => ({
+      ...supply,
+      cost: supply.cost.toNumber(),
+      products: supply.products?.map(ps => ({
+        id: ps.id,
+        productId: ps.productId,
+        supplyId: ps.supplyId,
+        quantity: ps.quantity,
+        product: ps.product,
+      })) || [],
     })),
-  })) as SupplyWithRelations[];
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export async function getSupplyStats(): Promise<{ totalSupplies: number; totalCost: number }> {

@@ -164,24 +164,41 @@ export async function getOrderById(orderId: number, userId?: number): Promise<Or
   }) as Promise<OrderWithRelations | null>;
 }
 
-export async function getAllOrders(): Promise<OrderWithRelations[]> {
-  return prisma.order.findMany({
-    include: {
-      items: {
-        include: {
-          product: true,
+export async function getAllOrders(options?: { page?: number; limit?: number }): Promise<{ data: OrderWithRelations[]; total: number; page: number; limit: number; totalPages: number }> {
+  const page = options?.page || 1;
+  const limit = options?.limit || 25;
+  const skip = (page - 1) * limit;
+
+  const [data, total] = await Promise.all([
+    prisma.order.findMany({
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
         },
       },
-      user: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  }) as Promise<OrderWithRelations[]>;
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
+    }),
+    prisma.order.count(),
+  ]);
+
+  return {
+    data: data as OrderWithRelations[],
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }
 
 export async function updateOrderStatus(
@@ -266,6 +283,68 @@ export async function getOrderStats(): Promise<{
     cancelados,
     totalSales: salesResult._sum.totalAmount?.toNumber() || 0,
   };
+}
+
+export interface SalesByMonth {
+  month: string;
+  year: number;
+  sales: number;
+  orders: number;
+}
+
+export async function getSalesByLast12Months(): Promise<SalesByMonth[]> {
+  const twelveMonthsAgo = new Date();
+  twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
+  twelveMonthsAgo.setDate(1);
+  twelveMonthsAgo.setHours(0, 0, 0, 0);
+
+  const orders = await prisma.order.findMany({
+    where: {
+      createdAt: {
+        gte: twelveMonthsAgo,
+      },
+      status: {
+        in: [OrderStatus.PENDIENTE, OrderStatus.ENVIADO, OrderStatus.ENTREGADO],
+      },
+    },
+    select: {
+      createdAt: true,
+      totalAmount: true,
+    },
+  });
+
+  const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const salesByMonth: Record<string, { sales: number; orders: number }> = {};
+
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${date.getFullYear()}-${date.getMonth()}`;
+    salesByMonth[key] = { sales: 0, orders: 0 };
+  }
+
+  for (const order of orders) {
+    const date = new Date(order.createdAt);
+    const key = `${date.getFullYear()}-${date.getMonth()}`;
+    if (salesByMonth[key]) {
+      salesByMonth[key].sales += Number(order.totalAmount);
+      salesByMonth[key].orders += 1;
+    }
+  }
+
+  const result: SalesByMonth[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = `${date.getFullYear()}-${date.getMonth()}`;
+    result.push({
+      month: monthNames[date.getMonth()],
+      year: date.getFullYear(),
+      sales: salesByMonth[key].sales,
+      orders: salesByMonth[key].orders,
+    });
+  }
+
+  return result;
 }
 
 export interface UpdateOrderItemsInput {

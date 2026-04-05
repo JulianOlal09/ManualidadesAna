@@ -133,7 +133,7 @@ export default function CheckoutPage() {
         ✓ Confirmar Pedido
       </h1>
 
-      <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">
           Tu pedido está listo
         </h2>
@@ -142,13 +142,13 @@ export default function CheckoutPage() {
         </p>
 
         {error && (
-          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="mb-4 p-4 bg-red-50 rounded-lg">
             <p className="text-red-800 text-sm">{error}</p>
           </div>
         )}
 
         {success && (
-          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="mb-4 p-4 bg-green-50 rounded-lg">
             <p className="text-green-800 text-sm font-medium">{success}</p>
             {!orderCreated && (
               <p className="text-green-600 text-xs mt-2">Se abrirá WhatsApp automáticamente...</p>
@@ -174,7 +174,7 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+      <div className="bg-green-50 rounded-lg p-4">
         <p className="text-sm text-green-800">
           <strong>📱 Notificación:</strong> Al confirmar el pedido, se abrirá WhatsApp con los detalles del pedido para enviarle a la proprietaria.
         </p>

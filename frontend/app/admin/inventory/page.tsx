@@ -73,11 +73,23 @@ export default function InventoryPage() {
     }
   };
 
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (isAdmin && categories.length > 0) {
       fetchData();
     }
-  }, [isAdmin, categories, filters, currentPage]);
+  }, [isAdmin, categories, currentPage, filters.categoryId, filters.stockStatus]);
+
+  useEffect(() => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    const timeout = setTimeout(() => {
+      if (isAdmin && categories.length > 0) {
+        fetchData();
+      }
+    }, 400);
+    setSearchTimeout(timeout);
+  }, [filters.search]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -98,6 +110,10 @@ export default function InventoryPage() {
   const handleFilterChange = (newFilters: Partial<InventoryFilters>) => {
     setFilters({ ...filters, ...newFilters });
     setCurrentPage(1);
+  };
+
+  const handleSearchChange = (value: string) => {
+    handleFilterChange({ search: value });
   };
 
   const handleAdjustStock = async (productId: number) => {
@@ -123,6 +139,7 @@ export default function InventoryPage() {
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= (inventoryData?.totalPages || 1)) {
       setCurrentPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -160,19 +177,19 @@ export default function InventoryPage() {
 
       {stats && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
-          <div className="bg-white rounded-lg shadow-sm border p-3 md:p-4">
+          <div className="bg-white rounded-lg shadow-sm p-3 md:p-4">
             <p className="text-xs md:text-sm text-gray-500">Total productos</p>
             <p className="text-xl md:text-2xl font-bold text-gray-800">{stats.totalProducts}</p>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border p-3 md:p-4">
+          <div className="bg-white rounded-lg shadow-sm p-3 md:p-4">
             <p className="text-xs md:text-sm text-gray-500">Sin stock</p>
             <p className="text-xl md:text-2xl font-bold text-red-600">{stats.outOfStock}</p>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border p-3 md:p-4">
+          <div className="bg-white rounded-lg shadow-sm p-3 md:p-4">
             <p className="text-xs md:text-sm text-gray-500">Stock bajo</p>
             <p className="text-xl md:text-2xl font-bold text-yellow-600">{stats.lowStock}</p>
           </div>
-          <div className="bg-white rounded-lg shadow-sm border p-3 md:p-4">
+          <div className="bg-white rounded-lg shadow-sm p-3 md:p-4">
             <p className="text-xs md:text-sm text-gray-500">En stock</p>
             <p className="text-xl md:text-2xl font-bold text-green-600">{stats.inStock}</p>
           </div>
@@ -180,22 +197,22 @@ export default function InventoryPage() {
       )}
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border p-3 md:p-4 mb-4 md:mb-6">
+      <div className="bg-white rounded-lg shadow-sm p-3 md:p-4 mb-4 md:mb-6">
         <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
           <div className="flex-1 min-w-0">
             <input
               type="text"
               placeholder="Buscar por nombre o SKU..."
               value={filters.search}
-              onChange={(e) => handleFilterChange({ search: e.target.value })}
-              className="w-full px-3 md:px-4 py-2 border rounded-lg text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-gray-300"
             />
           </div>
           <div className="w-full sm:w-auto sm:min-w-[150px]">
             <select
               value={filters.categoryId || ''}
               onChange={(e) => handleFilterChange({ categoryId: e.target.value ? parseInt(e.target.value) : undefined })}
-              className="w-full px-3 md:px-4 py-2 border rounded-lg text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-gray-300"
             >
               <option value="">Todas las categorías</option>
               {categories.map((cat) => (
@@ -207,7 +224,7 @@ export default function InventoryPage() {
             <select
               value={filters.stockStatus}
               onChange={(e) => handleFilterChange({ stockStatus: e.target.value as InventoryFilters['stockStatus'] })}
-              className="w-full px-3 md:px-4 py-2 border rounded-lg text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-pink-500"
+              className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-gray-300"
             >
               <option value="all">Todos</option>
               <option value="out">Sin stock</option>
@@ -218,7 +235,7 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm overflow-hidden">
         <div className="overflow-x-auto -mx-4 sm:mx-0">
           <div className="inline-block min-w-full align-middle">
             <table className="min-w-full divide-y divide-gray-200">
@@ -320,7 +337,7 @@ export default function InventoryPage() {
                             setAdjustQuantity(1);
                             setAdjustOperation('add');
                           }}
-                          className="text-pink-600 hover:text-pink-800 text-xs md:text-sm font-medium whitespace-nowrap"
+                          className="px-2 py-1 text-xs md:text-sm bg-pink-100 text-pink-700 rounded hover:bg-pink-200 transition-colors whitespace-nowrap"
                         >
                           Ajustar
                         </button>

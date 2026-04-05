@@ -8,6 +8,7 @@ import {
   getOrderStats,
   updateOrderItems,
   cancelOrder,
+  getSalesByLast12Months,
 } from '../services/order.service.js';
 import { OrderStatus } from '@prisma/client';
 
@@ -154,16 +155,22 @@ export async function getUserOrderController(
  * Obtener todos los pedidos (solo ADMIN)
  */
 export async function getAllOrdersController(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const orders = await getAllOrders();
+    const pageParam = req.query.page as string | undefined;
+    const limitParam = req.query.limit as string | undefined;
+    
+    const page = pageParam ? parseInt(pageParam, 10) : 1;
+    const limit = limitParam ? parseInt(limitParam, 10) : 25;
+
+    const result = await getAllOrders({ page, limit });
 
     res.status(200).json({
       success: true,
-      data: orders,
+      data: result,
     });
   } catch (error) {
     next(error);
@@ -340,6 +347,27 @@ export async function getOrderStatsController(
     res.status(200).json({
       success: true,
       data: stats,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
+ * GET /api/admin/orders/sales-by-month
+ * Obtener ventas de los últimos 12 meses (solo ADMIN)
+ */
+export async function getSalesByMonthController(
+  _req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const sales = await getSalesByLast12Months();
+
+    res.status(200).json({
+      success: true,
+      data: sales,
     });
   } catch (error) {
     next(error);

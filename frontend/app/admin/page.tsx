@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { OrderStats } from '@/types';
-import orderService from '@/services/order.service';
+import orderService, { SalesByMonth } from '@/services/order.service';
 import inventoryService from '@/services/inventory.service';
 import supplyService from '@/services/supply.service';
 import { useAuth } from '@/context/AuthContext';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -17,6 +17,7 @@ export default function AdminDashboardPage() {
   const [inventoryStats, setInventoryStats] = useState<{ totalProducts: number; outOfStock: number; lowStock: number; inStock: number } | null>(null);
   const [suppliesCount, setSuppliesCount] = useState<number>(0);
   const [supplyStats, setSupplyStats] = useState<{ totalSupplies: number; totalCost: number } | null>(null);
+  const [salesByMonth, setSalesByMonth] = useState<SalesByMonth[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -38,15 +39,17 @@ export default function AdminDashboardPage() {
 
   const fetchData = async () => {
     try {
-      const [orders, inventory, suppliesStats] = await Promise.all([
+      const [orders, inventory, suppliesStats, salesData] = await Promise.all([
         orderService.getStats(),
         inventoryService.getStats(),
         supplyService.getStats(),
+        orderService.getSalesByMonth(),
       ]);
       setOrderStats(orders);
       setInventoryStats(inventory);
       setSupplyStats(suppliesStats);
       setSuppliesCount(suppliesStats.totalSupplies);
+      setSalesByMonth(salesData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar datos');
     } finally {
@@ -81,6 +84,33 @@ export default function AdminDashboardPage() {
     { name: 'Sin Stock', value: inventoryStats?.outOfStock || 0 },
   ];
 
+  // Datos para gráfico de ventas por mes (con año)
+  const salesChartData = salesByMonth.map((item, index) => {
+    const sales = item.sales;
+    return {
+      month: `${item.month} ${item.year}`,
+      sales: sales,
+      trend: null as number | null,
+    };
+  });
+
+  // Calcular línea de tendencia (regresión lineal)
+  const n = salesChartData.length;
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+  salesChartData.forEach((item, i) => {
+    sumX += i;
+    sumY += item.sales;
+    sumXY += i * item.sales;
+    sumX2 += i * i;
+  });
+  const slope = n > 0 ? (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX) : 0;
+  const intercept = n > 0 ? (sumY - slope * sumX) / n : 0;
+  
+  // Agregar valores de tendencia al data
+  salesChartData.forEach((item, i) => {
+    item.trend = slope * i + intercept;
+  });
+
   const COLORS = ['#10b981', '#f59e0b', '#ef4444'];
 
   return (
@@ -94,24 +124,7 @@ export default function AdminDashboardPage() {
       )}
 
       {/* KPIs Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 md:gap-6 mb-6 md:mb-8">
-        <Link href="/admin/orders" className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-5 md:p-6 text-white shadow-lg hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-xs md:text-sm font-medium">Pedidos Pendientes</p>
-              <p className="text-2xl md:text-3xl font-bold mt-1 md:mt-2">{orderStats?.pendientes || 0}</p>
-            </div>
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0 self-center">
-              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-              </svg>
-            </div>
-          </div>
-          <div className="mt-2 md:mt-3 text-xs text-blue-100">
-            {orderStats?.total || 0} pedidos totales
-          </div>
-        </Link>
-
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
         <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-5 md:p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
@@ -182,42 +195,59 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
-        {/* Gráfico de barras - Pedidos */}
-        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border">
-          <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-3 md:mb-4">Estado de Pedidos</h2>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={orderChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Bar dataKey="cantidad" />
-            </BarChart>
-          </ResponsiveContainer>
+      <div className="space-y-6 mb-6 md:mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+          {/* Gráfico de barras - Pedidos */}
+          <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm">
+            <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-3 md:mb-4">Estado de Pedidos</h2>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={orderChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="cantidad" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Gráfico circular - Inventario */}
+          <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm">
+            <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-3 md:mb-4">Distribución de Inventario</h2>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={inventoryChartData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
+                  outerRadius={70}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {inventoryChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
-        {/* Gráfico circular - Inventario */}
-        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border">
-          <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-3 md:mb-4">Distribución de Inventario</h2>
+        {/* Gráfico de líneas - Ventas por mes */}
+        <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm">
+          <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-3 md:mb-4">Ventas últimos 12 meses</h2>
           <ResponsiveContainer width="100%" height={250}>
-            <PieChart>
-              <Pie
-                data={inventoryChartData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name}: ${((percent || 0) * 100).toFixed(0)}%`}
-                outerRadius={70}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {inventoryChartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
+            <LineChart data={salesChartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
+              <Line type="monotone" dataKey="sales" stroke="#ec4899" strokeWidth={2} dot={{ fill: '#ec4899' }} name="Ventas" />
+              <Line type="monotone" dataKey="trend" stroke="#6b7280" strokeWidth={2} strokeDasharray="5 5" dot={false} name="Tendencia" />
+            </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
@@ -227,7 +257,7 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
         <Link
           href="/admin/products"
-          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow"
+          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
         >
           <div className="flex items-start gap-3 md:gap-4">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -244,7 +274,7 @@ export default function AdminDashboardPage() {
 
         <Link
           href="/admin/inventory"
-          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow"
+          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
         >
           <div className="flex items-start gap-3 md:gap-4">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -261,7 +291,7 @@ export default function AdminDashboardPage() {
 
         <Link
           href="/admin/categories"
-          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow"
+          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
         >
           <div className="flex items-start gap-3 md:gap-4">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-pink-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -278,7 +308,7 @@ export default function AdminDashboardPage() {
 
         <Link
           href="/admin/orders"
-          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow"
+          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
         >
           <div className="flex items-start gap-3 md:gap-4">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-pink-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -295,7 +325,7 @@ export default function AdminDashboardPage() {
 
         <Link
           href="/admin/supplies"
-          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm border hover:shadow-md transition-shadow"
+          className="block bg-white rounded-xl p-4 md:p-6 shadow-sm hover:shadow-md transition-shadow"
         >
           <div className="flex items-start gap-3 md:gap-4">
             <div className="w-10 h-10 md:w-12 md:h-12 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -312,7 +342,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Resumen detallado de pedidos */}
-      <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm border">
+      <div className="bg-white rounded-xl p-4 md:p-6 shadow-sm">
         <h2 className="text-base md:text-lg font-semibold text-gray-800 mb-3 md:mb-4">Resumen de Pedidos</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
           <div className="text-center p-3 md:p-4 bg-gray-50 rounded-lg">

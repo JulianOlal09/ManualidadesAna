@@ -13,12 +13,16 @@ import {
 } from '../services/supply.service.js';
 
 export async function getSuppliesController(
-  _req: Request,
+  req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> {
   try {
-    const supplies = await getAllSupplies();
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const limit = parseInt(req.query.limit as string, 10) || 25;
+    const search = (req.query.search as string) || '';
+
+    const supplies = await getAllSupplies({ page, limit, search });
 
     res.status(200).json({
       success: true,

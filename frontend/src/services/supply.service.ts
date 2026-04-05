@@ -16,9 +16,22 @@ export interface CreateProductSupplyInput {
   quantity: number;
 }
 
+export interface PaginatedSupplies {
+  data: Supply[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 export const supplyService = {
-  async getAll(): Promise<Supply[]> {
-    const response = await apiClient.get<ApiResponse<Supply[]>>('/admin/supplies');
+  async getAll(page = 1, limit = 25, search = ''): Promise<PaginatedSupplies> {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      search: search,
+    });
+    const response = await apiClient.get<ApiResponse<PaginatedSupplies>>(`/admin/supplies?${params.toString()}`);
     if (response.data.success && response.data.data) {
       return response.data.data;
     }

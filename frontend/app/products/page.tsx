@@ -90,15 +90,6 @@ function ProductsContent() {
         </Link>
       </div>
 
-      {selectedCategory && (
-        <button
-          onClick={() => setSelectedCategory(null)}
-          className="mb-4 text-sm text-gray-600 hover:text-gray-800"
-        >
-          ← Ver todos los productos
-        </button>
-      )}
-
       <div className="flex gap-2 overflow-x-auto pb-4 mb-4">
         <button
           onClick={() => { setSelectedCategory(null); setCurrentPage(1); }}
@@ -139,7 +130,7 @@ function ProductsContent() {
               <Link
                 key={product.id}
                 href={`/products/${product.id}`}
-                className={`block bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow ${!product.isActive ? 'opacity-60' : ''}`}
+                className={`block bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow ${!product.isActive ? 'opacity-60' : ''}`}
               >
                 <div className="aspect-square bg-gray-100 rounded-t-lg flex items-center justify-center overflow-hidden">
                   {product.imageUrl ? (

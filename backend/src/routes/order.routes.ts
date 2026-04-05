@@ -9,6 +9,7 @@ import {
   getOrderStatsController,
   updateOrderItemsController,
   cancelOrderController,
+  getSalesByMonthController,
 } from '../controllers/order.controller.js';
 import { verifyTokenMiddleware, requireRole } from '../middlewares/auth.middleware.js';
 import { Role } from '@prisma/client';
@@ -39,6 +40,9 @@ router.delete('/orders/:id', cancelOrderController);
 
 // GET /api/admin/orders/stats - Estadísticas de pedidos
 router.get('/admin/orders/stats', requireRole(Role.ADMIN), getOrderStatsController);
+
+// GET /api/admin/orders/sales-by-month - Ventas por mes
+router.get('/admin/orders/sales-by-month', requireRole(Role.ADMIN), getSalesByMonthController);
 
 // GET /api/admin/orders - Listar todos los pedidos
 router.get('/admin/orders', requireRole(Role.ADMIN), getAllOrdersController);

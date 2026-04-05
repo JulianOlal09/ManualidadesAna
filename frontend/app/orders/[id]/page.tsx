@@ -176,7 +176,7 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
+      <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
         <div className="flex justify-between items-start mb-4">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Pedido #{order.id}</h1>
@@ -242,7 +242,7 @@ export default function OrderDetailPage() {
       <h2 className="text-lg font-semibold text-gray-800 mb-4">Productos</h2>
       <div className="space-y-4 mb-8">
         {editedItems.map((item, index) => (
-          <div key={item.id} className="bg-white rounded-lg shadow-sm border p-4 flex gap-4 items-center">
+          <div key={item.id} className="bg-white rounded-lg shadow-sm p-4 flex gap-4 items-center">
             <div className="w-20 h-20 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
               {item.product?.imageUrl ? (
                 <img
@@ -308,13 +308,13 @@ export default function OrderDetailPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border p-6 max-w-md ml-auto">
+      <div className="bg-white rounded-lg shadow-sm p-6 max-w-md ml-auto">
         <div className="space-y-2">
           <div className="flex justify-between text-sm text-gray-600">
             <span>Subtotal</span>
             <span>${calculateTotal().toFixed(2)}</span>
           </div>
-          <div className="flex justify-between text-lg font-bold border-t pt-2">
+          <div className="flex justify-between text-lg font-bold pt-2">
             <span>Total</span>
             <span>${calculateTotal().toFixed(2)}</span>
           </div>

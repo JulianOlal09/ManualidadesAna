@@ -38,15 +38,6 @@ export default function Footer() {
           </div>
 
           <div>
-            <h3 className="text-lg font-semibold mb-4 text-gray-800">Horario</h3>
-            <ul className="space-y-2 text-sm text-gray-600">
-              <li>Lunes a Viernes: 9:00 - 18:00</li>
-              <li>Sábado: 9:00 - 14:00</li>
-              <li>Domingo: Cerrado</li>
-            </ul>
-          </div>
-
-          <div>
             <h3 className="text-lg font-semibold mb-4 text-gray-800">Síguenos</h3>
             <div className="flex gap-4">
               <a 

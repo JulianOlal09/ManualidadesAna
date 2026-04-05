@@ -14,6 +14,7 @@ export const cartService = {
   async addItem(data: CartItemRequest): Promise<CartItem> {
     const response = await apiClient.post<ApiResponse<CartItem>>('/cart/items', data);
     if (response.data.success && response.data.data) {
+      window.dispatchEvent(new CustomEvent('cart-updated'));
       return response.data.data;
     }
     throw new Error(response.data.error?.message || 'Failed to add item to cart');
@@ -22,6 +23,7 @@ export const cartService = {
   async updateItem(productId: number, data: CartUpdateRequest): Promise<CartItem> {
     const response = await apiClient.put<ApiResponse<CartItem>>(`/cart/items/${productId}`, data);
     if (response.data.success && response.data.data) {
+      window.dispatchEvent(new CustomEvent('cart-updated'));
       return response.data.data;
     }
     throw new Error(response.data.error?.message || 'Failed to update cart item');
@@ -30,12 +32,16 @@ export const cartService = {
   async removeItem(productId: number): Promise<void> {
     try {
       const response = await apiClient.delete<ApiResponse<null>>(`/cart/items/${productId}`);
-      if (response.status === 204) return;
-      if (!response.data.success) {
-        throw new Error(response.data.error?.message || 'Failed to remove cart item');
+      if (response.status === 204 || response.data.success) {
+        window.dispatchEvent(new CustomEvent('cart-updated'));
+        return;
       }
+      throw new Error(response.data.error?.message || 'Failed to remove cart item');
     } catch (err: unknown) {
-      if (axios.isAxiosError(err) && err.response?.status === 204) return;
+      if (axios.isAxiosError(err) && err.response?.status === 204) {
+        window.dispatchEvent(new CustomEvent('cart-updated'));
+        return;
+      }
       throw err;
     }
   },
@@ -43,12 +49,16 @@ export const cartService = {
   async clearCart(): Promise<void> {
     try {
       const response = await apiClient.delete<ApiResponse<null>>('/cart');
-      if (response.status === 204) return;
-      if (!response.data.success) {
-        throw new Error(response.data.error?.message || 'Failed to clear cart');
+      if (response.status === 204 || response.data.success) {
+        window.dispatchEvent(new CustomEvent('cart-updated'));
+        return;
       }
+      throw new Error(response.data.error?.message || 'Failed to clear cart');
     } catch (err: unknown) {
-      if (axios.isAxiosError(err) && err.response?.status === 204) return;
+      if (axios.isAxiosError(err) && err.response?.status === 204) {
+        window.dispatchEvent(new CustomEvent('cart-updated'));
+        return;
+      }
       throw err;
     }
   },

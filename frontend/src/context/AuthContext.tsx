@@ -102,12 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     authService.logout();
     setUser(null);
     window.dispatchEvent(new CustomEvent('cart-updated'));
     window.location.href = '/';
-  };
+  }, []);
 
   const isAuthenticated = !!user;
   const isAdmin = user?.role === Role.ADMIN;

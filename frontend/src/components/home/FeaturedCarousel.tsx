@@ -9,7 +9,17 @@ export default function FeaturedCarousel() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     const fetchFeatured = async () => {
@@ -26,7 +36,8 @@ export default function FeaturedCarousel() {
   }, []);
 
   useEffect(() => {
-    if (products.length > 4) {
+    const threshold = isMobile ? 1 : 4;
+    if (products.length > threshold) {
       intervalRef.current = setInterval(() => {
         setCurrentIndex((prev) => (prev + 1) % products.length);
       }, 4000);
@@ -34,7 +45,7 @@ export default function FeaturedCarousel() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [products.length]);
+  }, [products.length, isMobile]);
 
   const goToSlide = (index: number) => {
     setCurrentIndex(index);
@@ -60,6 +71,9 @@ export default function FeaturedCarousel() {
     return null;
   }
 
+  const threshold = isMobile ? 1 : 3;
+  const slideWidth = isMobile ? 100 : (100 / 3);
+
   return (
     <div className="mb-10">
       <div className="mb-4 sm:mb-6">
@@ -72,10 +86,10 @@ export default function FeaturedCarousel() {
         <div className="w-full">
           <div 
             className="flex transition-transform duration-500 ease-out"
-            style={{ transform: `translateX(-${currentIndex * (100 / 3)}%)` }}
+            style={{ transform: `translateX(-${currentIndex * slideWidth}%)` }}
           >
             {products.map((product) => (
-              <div key={product.id} className="w-1/3 flex-shrink-0 px-2 sm:px-4">
+              <div key={product.id} className={`flex-shrink-0 px-2 sm:px-4 ${isMobile ? 'w-full' : 'w-1/3'}`}>
                 <Link
                   href={`/products/${product.id}`}
                   className="block hover:opacity-90 transition-opacity"
@@ -97,7 +111,7 @@ export default function FeaturedCarousel() {
           </div>
         </div>
 
-        {products.length > 3 && (
+        {products.length > threshold && (
           <>
             <button
               onClick={() => goToSlide((currentIndex - 1 + products.length) % products.length)}
@@ -121,7 +135,7 @@ export default function FeaturedCarousel() {
         )}
       </div>
 
-      {products.length > 3 && (
+      {products.length > threshold && (
         <div className="flex justify-center mt-4 gap-2">
           {products.map((_, idx) => (
             <button

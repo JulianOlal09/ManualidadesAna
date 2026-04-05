@@ -46,12 +46,8 @@ class ApiClient {
       (error: AxiosError) => {
         if (error.response?.status === 401) {
           if (typeof window !== 'undefined') {
-            const currentPath = window.location.pathname;
-            if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
-              localStorage.removeItem('token');
-              localStorage.removeItem('user');
-              window.location.href = '/login';
-            }
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
           }
         }
         return Promise.reject(error);

@@ -300,7 +300,88 @@ Al confirmar un pedido, se abre WhatsApp con los detalles del pedido:
 
 ---
 
-## 12. Comandos de Desarrollo
+## 12. Paginación y Búsqueda
+
+### 12.1 Sistema de Paginación
+Se implementó paginación en todas las páginas administrativas para mejorar el rendimiento y la experiencia de usuario:
+
+#### Páginas con Paginación
+- **Inventario** (`/admin/inventory`): 25 productos por página
+- **Productos** (`/admin/products`): 25 productos por página
+- **Pedidos** (`/admin/orders`): 25 pedidos por página
+- **Insumos** (`/admin/supplies`): 25 insumos por página
+
+#### Características
+- Navegación con botones "Anterior" y "Siguiente"
+- Números de página con vista inteligente (muestra página actual ±1 y primera/última)
+- Scroll automático al inicio al cambiar de página
+- Contador de elementos: "Mostrando X - Y de Z elementos"
+
+### 12.2 Búsqueda con Debounce
+Todas las páginas admin incluyen búsqueda en tiempo real:
+- Delay de 400ms para evitar sobrecarga de peticiones
+- Reset automático a página 1 al buscar
+- Búsqueda case-insensitive en backend
+
+#### Endpoints con Búsqueda
+```typescript
+// Products
+GET /products?page=1&limit=25&search=texto&includeInactive=true
+
+// Orders
+GET /admin/orders?page=1&limit=25&search=texto
+
+// Supplies
+GET /admin/supplies?page=1&limit=25&search=texto
+```
+
+---
+
+## 13. Mejoras de UI/UX (Actualización 2024)
+
+### 13.1 Diseño General
+- **Sin bordes negros**: Eliminados de tarjetas de productos, categorías, carrito y checkout
+- **Sombras suaves**: `shadow-sm` en todas las tarjetas para un look más moderno
+- **Botones con color**: Fondos de color en lugar de outline (ej. `bg-blue-600` en lugar de `border-blue-600`)
+- **Modales con blur**: `backdrop-blur-sm` en todos los modales para mejor contraste
+
+### 13.2 Carrito Flotante
+Se agregó un botón flotante del carrito en la esquina inferior derecha:
+- Visible en todas las páginas (excepto admin)
+- Muestra contador de productos
+- Animación de bounce al agregar productos
+- Color rosa/púrpura acorde al branding
+- Responsive: se oculta en pantallas pequeñas cuando el navbar está visible
+
+**Ubicación**: `frontend/src/components/cart/FloatingCartButton.tsx`
+
+### 13.3 Notificaciones Mejoradas
+Sistema de notificaciones con estado read/unread:
+- Icono de campana con badge de contador
+- Dropdown con lista de notificaciones
+- Botón "Marcar como leída" por notificación
+- Botón "Marcar todas como leídas"
+- Navegación directa al pedido desde la notificación
+
+### 13.4 Dashboard de Administración
+Gráfico de tendencia de ventas:
+- Línea de ventas mensuales con los últimos 6 meses
+- Línea de tendencia calculada con regresión lineal
+- Colores: verde para ventas, rojo para tendencia
+- Librería: Recharts
+
+### 13.5 Página de Inicio
+- **Hero sin sombra**: Título principal sin `text-shadow`
+- **Carrusel mejorado**: Productos destacados con navegación
+- **Categorías**: Tarjetas sin borde negro, solo sombra suave
+
+### 13.6 Autenticación
+- **Modal de login/registro**: Fondo con `backdrop-blur-sm`
+- **Diseño limpio**: Sin bordes negros, solo sombras
+
+---
+
+## 14. Comandos de Desarrollo
 
 ### Backend
 ```bash
