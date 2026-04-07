@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -13,6 +13,25 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    if (userMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [userMenuOpen]);
 
   const openLogin = () => {
     setAuthModalMode('login');
@@ -72,53 +91,109 @@ export default function Navbar() {
               )}
             </button>
 
-            <div className="hidden md:flex items-center gap-3">
+            {/* Desktop Navigation - Center */}
+            <div className="hidden md:flex items-center gap-6">
               <Link
                 href="/products"
-                className="px-4 py-2.5 text-base text-gray-700 hover:text-pink-600 hover:bg-white/50 rounded-lg transition-all duration-200 font-medium"
+                className="px-4 py-2 text-base text-gray-700 hover:text-pink-600 hover:bg-white/50 rounded-lg transition-all duration-200 font-medium"
               >
                 🛍️ Productos
               </Link>
               <Link
-                href="/cart"
-                className="px-4 py-2.5 text-base text-gray-700 hover:text-pink-600 hover:bg-white/50 rounded-lg transition-all duration-200 font-medium"
+                href="/contacto"
+                className="px-4 py-2 text-base text-gray-700 hover:text-pink-600 hover:bg-white/50 rounded-lg transition-all duration-200 font-medium"
               >
-                🛒 Mi Carrito
+                🎨 Pedido Personalizado
               </Link>
-              {isAuthenticated && !isAdmin && (
-                <Link
-                  href="/orders"
-                  className="px-4 py-2.5 text-base text-gray-700 hover:text-pink-600 hover:bg-white/50 rounded-lg transition-all duration-200 font-medium"
-                >
-                  📦 Mis Pedidos
-                </Link>
-              )}
-              {isAdmin && (
-                <Link
-                  href="/admin"
-                  className="px-4 py-2.5 text-base text-purple-700 hover:text-purple-900 hover:bg-white/50 rounded-lg transition-all duration-200 font-semibold"
-                >
-                  ⚙️ Admin
-                </Link>
-              )}
             </div>
 
+            {/* Desktop Navigation - Right side (Cart & Account) */}
             <div className="hidden md:flex items-center gap-3">
+              <Link
+                href="/cart"
+                className="relative px-4 py-2 text-gray-700 hover:text-pink-600 hover:bg-white/50 rounded-lg transition-all duration-200"
+                title="Mi Carrito"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </Link>
+
               {isAuthenticated ? (
-                <div className="flex items-center gap-3">
-                  <Link
-                    href="/profile"
-                    className="flex items-center gap-2 px-4 py-2.5 bg-white/60 rounded-full hover:bg-white/80 transition-colors text-base font-medium text-gray-700"
-                  >
-                    <span className="text-lg">👋</span>
-                    {user?.name}
-                  </Link>
+                <div className="relative" ref={userMenuRef}>
                   <button
-                    onClick={logout}
-                    className="px-4 py-2.5 text-base font-medium text-gray-700 hover:text-red-600 hover:bg-white/50 rounded-lg transition-all duration-200"
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/60 rounded-full hover:bg-white/80 transition-colors text-base font-medium text-gray-700"
                   >
-                    Salir
+                    <span className="text-lg">👤</span>
+                    <span className="max-w-[120px] truncate">{user?.name}</span>
+                    <svg 
+                      className={`w-4 h-4 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} 
+                      fill="none" 
+                      stroke="currentColor" 
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
                   </button>
+
+                  {userMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                      <Link
+                        href="/profile"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-pink-50 transition-colors"
+                      >
+                        <span>👤</span>
+                        <span>Mi Perfil</span>
+                      </Link>
+                      
+                      {!isAdmin && (
+                        <>
+                          <Link
+                            href="/orders"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-pink-50 transition-colors"
+                          >
+                            <span>📦</span>
+                            <span>Mis Pedidos</span>
+                          </Link>
+                          <Link
+                            href="/custom-orders"
+                            onClick={() => setUserMenuOpen(false)}
+                            className="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-pink-50 transition-colors"
+                          >
+                            <span>🎨</span>
+                            <span>Mis Pedidos Personalizados</span>
+                          </Link>
+                        </>
+                      )}
+
+                      {isAdmin && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-2 px-4 py-2.5 text-purple-700 hover:bg-purple-50 font-semibold transition-colors"
+                        >
+                          <span>⚙️</span>
+                          <span>Panel Admin</span>
+                        </Link>
+                      )}
+
+                      <div className="border-t border-gray-200 my-1"></div>
+                      
+                      <button
+                        onClick={() => {
+                          logout();
+                          setUserMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <span>🚪</span>
+                        <span>Cerrar Sesión</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
@@ -139,6 +214,7 @@ export default function Navbar() {
             </div>
           </div>
 
+          {/* Mobile Menu */}
           {mobileMenuOpen && (
             <div className="md:hidden border-t border-pink-100 py-4">
               <div className="space-y-2">
@@ -150,52 +226,81 @@ export default function Navbar() {
                   🛍️ Productos
                 </Link>
                 <Link
+                  href="/contacto"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block px-4 py-3 text-gray-700 hover:bg-white/50 rounded-lg font-medium text-lg"
+                >
+                  🎨 Pedido Personalizado
+                </Link>
+                <Link
                   href="/cart"
                   onClick={() => setMobileMenuOpen(false)}
                   className="block px-4 py-3 text-gray-700 hover:bg-white/50 rounded-lg font-medium text-lg"
                 >
                   🛒 Mi Carrito
                 </Link>
-                {isAuthenticated && !isAdmin && (
-                  <Link
-                    href="/orders"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-4 py-3 text-gray-700 hover:bg-white/50 rounded-lg font-medium text-lg"
-                  >
-                    📦 Mis Pedidos
-                  </Link>
-                )}
-                {isAdmin && (
-                  <Link
-                    href="/admin"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block px-4 py-3 text-purple-700 hover:bg-white/50 rounded-lg font-semibold text-lg"
-                  >
-                    ⚙️ Admin
-                  </Link>
-                )}
               </div>
-              <div className="border-t border-pink-100 pt-4 mt-4">
-                {isAuthenticated ? (
-                  <div className="space-y-2">
+              
+              {isAuthenticated && (
+                <div className="border-t border-pink-100 pt-4 mt-4">
+                  <div className="px-4 py-2 text-sm font-semibold text-gray-500 uppercase">
+                    Mi Cuenta
+                  </div>
+                  <div className="space-y-2 mt-2">
                     <Link
                       href="/profile"
                       onClick={() => setMobileMenuOpen(false)}
                       className="flex items-center gap-2 px-4 py-3 text-gray-700 hover:bg-white/50 rounded-lg font-medium text-lg"
                     >
-                      👤 {user?.name}
+                      <span>👤</span>
+                      <span>{user?.name}</span>
                     </Link>
+                    {!isAdmin && (
+                      <>
+                        <Link
+                          href="/orders"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center gap-2 px-4 py-3 text-gray-700 hover:bg-white/50 rounded-lg font-medium text-lg"
+                        >
+                          <span>📦</span>
+                          <span>Mis Pedidos</span>
+                        </Link>
+                        <Link
+                          href="/custom-orders"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center gap-2 px-4 py-3 text-gray-700 hover:bg-white/50 rounded-lg font-medium text-lg"
+                        >
+                          <span>🎨</span>
+                          <span>Mis Pedidos Personalizados</span>
+                        </Link>
+                      </>
+                    )}
+                    {isAdmin && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-2 px-4 py-3 text-purple-700 hover:bg-purple-50 rounded-lg font-semibold text-lg"
+                      >
+                        <span>⚙️</span>
+                        <span>Panel Admin</span>
+                      </Link>
+                    )}
                     <button
                       onClick={() => {
                         logout();
                         setMobileMenuOpen(false);
                       }}
-                      className="w-full text-left px-4 py-3 text-lg text-red-600 hover:bg-red-50 rounded-lg"
+                      className="w-full flex items-center gap-2 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg font-medium text-lg"
                     >
-                      Salir
+                      <span>🚪</span>
+                      <span>Cerrar Sesión</span>
                     </button>
                   </div>
-                ) : (
+                </div>
+              )}
+              
+              {!isAuthenticated && (
+                <div className="border-t border-pink-100 pt-4 mt-4">
                   <div className="space-y-2">
                     <button
                       onClick={() => {
@@ -216,8 +321,8 @@ export default function Navbar() {
                       Registrarse
                     </button>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           )}
         </div>

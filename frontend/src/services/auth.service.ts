@@ -10,6 +10,7 @@ import {
 export interface UpdateProfileInput {
   name?: string;
   email?: string;
+  phone?: string;
   currentPassword?: string;
   newPassword?: string;
 }

@@ -77,7 +77,7 @@ function ProductsContent() {
           Pedidos y Pedidos Personalizados
         </h3>
         <p className="text-sm text-yellow-700">
-          El pedido se gestiona via mensaje de WhatsApp. Para un pedido personalizado debes elegir una caja sin decoración y una servilleta, o en su defecto especificar tu diseño via WhatsApp.
+          El pedido se gestiona via mensaje de WhatsApp. Para un pedido personalizado dirígete al apartado Pedidos Personalizados.
         </p>
       </div>
 

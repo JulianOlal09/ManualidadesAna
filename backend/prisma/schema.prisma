@@ -19,17 +19,26 @@ enum OrderStatus {
   CANCELADO
 }
 
+enum CustomOrderStatus {
+  PENDING
+  CONTACTED
+  COMPLETED
+  CANCELLED
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique @db.VarChar(191)
   password  String   @db.VarChar(255)
   name      String   @db.VarChar(100)
+  phone     String?  @db.VarChar(20)
   role      Role     @default(CLIENT)
   createdAt DateTime @default(now()) @db.DateTime(0)
   updatedAt DateTime @updatedAt @db.DateTime(0)
 
-  orders    Order[]
-  cartItems CartItem[]
+  orders       Order[]
+  cartItems    CartItem[]
+  customOrders CustomOrder[]
 }
 
 model Category {
@@ -142,4 +151,18 @@ model CartItem {
 
   @@unique([userId, productId])
   @@index([userId])
+}
+
+model CustomOrder {
+  id        Int               @id @default(autoincrement())
+  userId    Int
+  message   String            @db.Text
+  status    CustomOrderStatus @default(PENDING)
+  createdAt DateTime          @default(now()) @db.DateTime(0)
+  updatedAt DateTime          @updatedAt @db.DateTime(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([userId])
+  @@index([status])
 }

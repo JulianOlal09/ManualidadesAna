@@ -14,6 +14,7 @@ export interface User {
   id: number;
   email: string;
   name: string;
+  phone: string | null;
   role: Role;
   createdAt: string;
   updatedAt: string;
@@ -138,6 +139,7 @@ export interface AuthRegisterRequest {
   email: string;
   password: string;
   name: string;
+  phone: string;
 }
 
 export interface AuthResponse {
@@ -165,4 +167,21 @@ export interface OrderStats {
   entregados: number;
   cancelados: number;
   totalSales: number;
+}
+
+export type CustomOrderStatus = 'PENDING' | 'CONTACTED' | 'COMPLETED' | 'CANCELLED';
+
+export interface CustomOrder {
+  id: number;
+  userId: number;
+  message: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string | null;
+  };
 }

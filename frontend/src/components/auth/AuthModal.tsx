@@ -16,6 +16,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -32,6 +33,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
       setEmail('');
       setPassword('');
       setName('');
+      setPhone('');
       setConfirmPassword('');
     }
   }, [isOpen, mode]);
@@ -72,6 +74,11 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     e.preventDefault();
     setError('');
 
+    if (!phone.trim()) {
+      setError('El teléfono es requerido');
+      return;
+    }
+
     if (password !== confirmPassword) {
       setError('Las contraseñas no coinciden');
       return;
@@ -85,7 +92,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
     setIsLoading(true);
 
     try {
-      await register(email, password, name);
+      await register(email, password, name, phone);
       onClose();
       router.push('/products');
     } catch (err) {
@@ -197,6 +204,19 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login' }: Au
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
                   placeholder="tu@email.com"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Teléfono
+                </label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                  placeholder="+52 123 456 7890"
                   required
                 />
               </div>

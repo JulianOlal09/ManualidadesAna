@@ -9,6 +9,7 @@ import cartRoutes from './routes/cart.routes.js';
 import orderRoutes from './routes/order.routes.js';
 import inventoryRoutes from './routes/inventory.routes.js';
 import supplyRoutes from './routes/supply.routes.js';
+import customOrderRoutes from './routes/customOrder.routes.js';
 
 const app: Application = express();
 
@@ -25,7 +26,12 @@ app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+app.get('/test-directo', (_req: Request, res: Response) => {
+  res.json({ message: 'direct test works!' });
+});
+
 app.use('/api/auth', authRoutes);
+app.use('/api/pedido-personalizado', customOrderRoutes);
 app.use('/api', productRoutes);
 app.use('/api', categoryRoutes);
 app.use('/api', cartRoutes);

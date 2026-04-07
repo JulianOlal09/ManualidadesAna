@@ -8,6 +8,7 @@ import { useAuth } from '@/context/AuthContext';
 function RegisterContent() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -35,7 +36,7 @@ function RegisterContent() {
     setIsLoading(true);
 
     try {
-      await register(email, password, name);
+      await register(email, password, name, phone);
       // Tras registrarse, siempre es un cliente (no admin), así que respetamos redirectPath
       router.push(redirectPath);
     } catch (err) {
@@ -92,6 +93,20 @@ function RegisterContent() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+                Teléfono
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="+52 123 456 7890"
               />
             </div>
 

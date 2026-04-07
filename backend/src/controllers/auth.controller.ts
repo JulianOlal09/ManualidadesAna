@@ -12,14 +12,14 @@ export async function registerController(
   next: NextFunction
 ): Promise<void> {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, phone } = req.body;
 
-    if (!email || !password || !name) {
+    if (!email || !password || !name || !phone) {
       res.status(400).json({
         success: false,
         error: {
           code: 'VALIDATION_ERROR',
-          message: 'Email, password and name are required',
+          message: 'Email, password, name and phone are required',
         },
       });
       return;
@@ -47,7 +47,7 @@ export async function registerController(
       return;
     }
 
-    const result = await register({ email, password, name });
+    const result = await register({ email, password, name, phone });
 
     res.status(201).json({
       success: true,
@@ -169,9 +169,9 @@ export async function updateProfileController(
       return;
     }
 
-    const { name, email, currentPassword, newPassword } = req.body;
+    const { name, email, phone, currentPassword, newPassword } = req.body;
 
-    if (!name && !email && !newPassword) {
+    if (!name && !email && !phone && !newPassword) {
       res.status(400).json({
         success: false,
         error: { code: 'VALIDATION_ERROR', message: 'At least one field to update is required' },

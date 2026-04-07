@@ -7,6 +7,7 @@ export interface RegisterInput {
   email: string;
   password: string;
   name: string;
+  phone: string;
 }
 
 export interface LoginInput {
@@ -35,6 +36,7 @@ export async function register(input: RegisterInput): Promise<AuthResult> {
       email: input.email,
       password: hashedPassword,
       name: input.name,
+      phone: input.phone,
       role: Role.CLIENT,
     },
   });
@@ -84,6 +86,7 @@ export async function getUserById(userId: number): Promise<Omit<User, 'password'
 export interface UpdateUserInput {
   name?: string;
   email?: string;
+  phone?: string;
   currentPassword?: string;
   newPassword?: string;
 }
@@ -113,13 +116,16 @@ export async function updateUser(userId: number, input: UpdateUserInput): Promis
     }
   }
 
-  const updateData: Partial<{ name: string; email: string; password: string }> = {};
+  const updateData: Partial<{ name: string; email: string; phone: string; password: string }> = {};
 
   if (input.name) {
     updateData.name = input.name;
   }
   if (input.email) {
     updateData.email = input.email;
+  }
+  if (input.phone) {
+    updateData.phone = input.phone;
   }
   if (input.newPassword && input.currentPassword) {
     updateData.password = await bcrypt.hash(input.newPassword, 10);

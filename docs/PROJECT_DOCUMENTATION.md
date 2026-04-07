@@ -401,3 +401,163 @@ npm run dev        # Puerto 3000
 cd backend && npx tsc --noEmit    # Sin errores TypeScript
 cd frontend && npm run build      # Build exitoso
 ```
+
+---
+
+## 15. Pedidos Personalizados (Abril 2026)
+
+### 15.1 Visión General
+Sistema que permite a usuarios autenticados solicitar pedidos personalizados de productos hecho a mano.
+
+### 15.2 Estructura de Datos
+
+#### Modelo CustomOrder (Prisma)
+```prisma
+enum CustomOrderStatus {
+  PENDING
+  CONTACTED
+  COMPLETED
+  CANCELLED
+}
+
+model CustomOrder {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  message   String   @db.Text
+  status    CustomOrderStatus @default(PENDING)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+}
+```
+
+#### Campo teléfono en User
+```prisma
+model User {
+  // ... otros campos
+  phone     String?  @db.VarChar(20)
+}
+```
+
+### 15.3 Rutas del Backend
+
+| Método | Ruta | Descripción | Autenticación |
+|--------|------|--------------|----------------|
+| POST | `/api/pedido-personalizado/pedido` | Crear nuevo pedido personalizado | ✅ Usuario |
+| GET | `/api/pedido-personalizado/mis-pedidos` | Ver mis pedidos | ✅ Usuario |
+| GET | `/api/pedido-personalizado/admin/all` | Listar todos (admin) | ✅ Admin |
+| PATCH | `/api/pedido-personalizado/admin/:id/status` | Actualizar estado | ✅ Admin |
+
+### 15.4 Flujo de Usuario
+
+1. **Creación**: Usuario autenticado -> Formulario en `/contacto`
+2. **Datos mostrados**: Nombre, Email, Teléfono del usuario
+3. **Almacenamiento**: Se guarda en BD con status PENDING
+4. **Notificación**: Se envía email a `analaura_1975@hotmail.com` via Resend
+
+### 15.5 Flujo de Admin
+
+1. **Acceso**: Panel en `/admin/custom-orders`
+2. **Funcionalidades**:
+   - Ver todos los pedidos personalizados
+   - Filtrar por estado (PENDING, CONTACTED, COMPLETED, CANCELLED)
+   - Actualizar status del pedido
+   - Ver información de contacto del cliente
+
+### 15.6 Páginas del Frontend
+
+| Página | Descripción |
+|--------|-------------|
+| `/contacto` | Formulario de pedido personalizado |
+| `/custom-orders` | Lista de pedidos del usuario |
+
+### 15.7 Notificaciones por Email
+
+**Template de email enviado**:
+- Asunto: `Nuevo pedido personalizado de {nombre_usuario}`
+- Contenido: Nombre, Email, Teléfono, Mensaje del cliente
+- Destino: `analaura_1975@hotmail.com`
+
+### 15.8 Estados del Pedido
+
+| Estado | Descripción |
+|--------|-------------|
+| PENDING | Pedido enviado, esperando contacto |
+| CONTACTED | Admin ha contactado al cliente |
+| COMPLETED | Pedido concretado/entregado |
+| CANCELLED | Pedido cancelado |
+
+---
+
+## 16. Cambios de UI/UX (Abril 2026)
+
+### 16.1 Optimización del Navbar
+
+**Problema original**: Demasiados elementos en el menú de navegación (8-9 items).
+
+**Solución implementada**:
+- Reducción a 3-4 items primarios en escritorio
+- Menú desplegable para account management
+- Estructura consistente desktop y mobile
+
+**Items del menú desplegable**:
+- Mi Perfil
+- Mis Pedidos
+- Mis Pedidos Personalizados
+- Panel Admin (si es admin)
+- Cerrar Sesión
+
+### 16.2 Página de Pedidos Personalizados
+
+- Eliminación del botón "Nuevo Pedido" en la lista de pedidos
+- Margenes estandarizados con otras páginas de usuario
+- Diseño responsive
+
+### 16.3 Formulario de Contacto
+
+Actualizaciones en `/contacto`:
+- Muestra Nombre, Email y Teléfono del usuario
+- Placeholder detallado: "Puedes indicar que productos MDF sin decorar y servilleta te gustaria para tu pedido personalizado..."
+- Mensaje: "Nos comunicaremos contigo via WhatsApp"
+
+### 16.4 Página de Productos
+
+- Actualización del banner informativo:
+  - **Antes**: "Para un pedido personalizado debes elegir una caja sin decoración y una servilleta, o en su defecto especificar tu diseño via WhatsApp."
+  - **Ahora**: "Para un pedido personalizado dirígete al apartado Pedidos Personalizados."
+
+---
+
+## 17. Notas Técnicas Adicionales
+
+### 17.1 Issues con Turbopack en Windows
+
+**Problema**: Next.js 16 con Turbopack tiene un bug en Windows que causa error Fatal al procesar archivos CSS:
+```
+reading file "D:\Proyectos\Manualidades Ana\frontend\nul"
+Función incorrecta. (os error 1)
+```
+
+**Solución**: Forzar uso de Webpack en lugar de Turbopack:
+
+```json
+// package.json
+"dev": "next dev --webpack"
+```
+
+### 17.2 Configuración de Desarrollo
+
+```bash
+# Backend (Puerto 3001)
+cd backend
+npm run dev
+
+# Frontend (Puerto 3000, con Webpack)
+cd frontend
+npm run dev
+```
+
+---
+
+*Documento actualizado: Abril 2026*
+*Versión del proyecto: 1.0.0*
