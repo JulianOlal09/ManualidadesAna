@@ -1,5 +1,5 @@
 # Modelo de Datos - Manualidades Ana
-Versión: 2.0 (Ajustada)
+Versión: 3.0 (Sin variantes)
 
 ---
 
@@ -12,36 +12,36 @@ Versión: 2.0 (Ajustada)
 │ id (PK)      │       │ id (PK)      │       │ id (PK)      │
 │ email        │       │ name         │       │ name         │
 │ password     │       │ description  │       │ description  │
-│ name         │       │ parentId     │       │ categoryId   │
-│ role         │       │ isActive     │       │ imageUrl     │
-│ createdAt    │       │ createdAt    │       │ isActive     │
-│ updatedAt    │       │ updatedAt    │       │ createdAt    │
-└──────┬───────┘       └──────┬───────┘       │ updatedAt    │
-        │                     │                └──────┬───────┘
-        │                     │                      │
-        │                     │ 1:N                  1:N
-        │                     ▼                      ▼
-        │              ┌──────────────┐       ┌──────────────┐
-        │              │    ORDER     │       │   VARIANT    │
-        │              ├──────────────┤       ├──────────────┤
-        │              │ id (PK)      │       │ id (PK)      │
-        │              │ userId (FK)  │       │ productId    │
-        │              │ status       │       │ name         │
-        │              │ totalAmount  │       │ sku (UQ)     │
-        │              │ createdAt    │       │ price (NN)   │
-        │              │ updatedAt    │       │ stock        │
-        │              └──────┬───────┘       │ isActive     │
-        │                     │                │ createdAt    │
-        │                     │ 1:N            │ updatedAt    │
-        │                     ▼                └──────────────┘
-        │              ┌──────────────┐
-        │              │  ORDERITEM   │
-        │              ├──────────────┤
-        │              │ id (PK)      │
-        └─────────────▶│ orderId (FK) │
-                        │ variantId(FK)│
-                        │ quantity     │
-                        │ priceAtPurchase
+│ name         │       │ parentId     │       │ price        │
+│ phone        │       │ isActive     │       │ sku          │
+│ role         │       │ createdAt    │       │ stock        │
+│ createdAt    │       │ updatedAt    │       │ categoryId   │
+│ updatedAt    │       └──────┬───────┘       │ imageUrl1    │
+└──────┬───────┘                │               │ imageUrl2    │
+       │                        │               │ imageUrl3    │
+       │                        │ 1:N           │ isActive     │
+       │                        ▼               │ createdAt    │
+       │                ┌──────────────┐       │ updatedAt    │
+       │                │    ORDER     │       └──────┬───────┘
+       │                ├──────────────┤              │
+       │                │ id (PK)      │              │
+       │                │ userId (FK)  │              │
+       │                │ status       │              │
+       │                │ totalAmount  │              │
+       │                │ createdAt    │              │
+       │                │ updatedAt    │              │
+       │                └──────┬───────┘              │
+       │                       │                      │
+       │                       │ 1:N                  │
+       │                       ▼                      │
+       │                ┌──────────────┐              │
+       │                │  ORDERITEM   │              │
+       │                ├──────────────┤              │
+       │                │ id (PK)      │              │
+       └───────────────▶│ orderId (FK) │              │
+                        │ productId(FK)│              │
+                        │ quantity     │              │
+                        │ priceAtPurchase              │
                         └──────────────┘
 ```
 
@@ -81,30 +81,20 @@ Versión: 2.0 (Ajustada)
 | name | VARCHAR(200) | NO | - | Nombre del producto |
 | description | TEXT | YES | NULL | Descripción |
 | categoryId | INT | YES | NULL | FK a categories |
-| imageUrl | VARCHAR(500) | YES | NULL | URL de imagen |
-| isActive | BOOLEAN | NO | TRUE | Soft delete |
-| createdAt | DATETIME | NO | CURRENT_TIMESTAMP | Fecha creación |
-| updatedAt | DATETIME | NO | CURRENT_TIMESTAMP ON UPDATE | Fecha modificación |
-
-**Nota**: Product NO tiene precio. El precio se define exclusivamente en Variant.
-
-### 2.4 Tabla: variants
-
-| Campo | Tipo | Nullable | Default | Descripción |
-|-------|------|----------|---------|-------------|
-| id | INT | NO | AUTO_INCREMENT | PK |
-| productId | INT | NO | - | FK a products |
-| name | VARCHAR(200) | NO | - | Ej: "Rojo - Grande" |
+| price | DECIMAL(10,2) | NO | - | Precio del producto |
 | sku | VARCHAR(50) | YES | NULL | Código único |
-| price | DECIMAL(10,2) | NO | - | Precio (OBLIGATORIO) |
 | stock | INT | NO | 0 | Cantidad disponible |
+| imageUrl1 | VARCHAR(500) | YES | NULL | URL de imagen principal |
+| imageUrl2 | VARCHAR(500) | YES | NULL | URL de imagen secundaria |
+| imageUrl3 | VARCHAR(500) | YES | NULL | URL de imagen terciaria |
+| marginPercentage | DECIMAL(5,2) | YES | NULL | Porcentaje de margen |
 | isActive | BOOLEAN | NO | TRUE | Soft delete |
 | createdAt | DATETIME | NO | CURRENT_TIMESTAMP | Fecha creación |
 | updatedAt | DATETIME | NO | CURRENT_TIMESTAMP ON UPDATE | Fecha modificación |
 
-**Regla de precio**: Toda variante DEBE tener precio propio. No existe herencia.
+**Nota**: El producto tiene sus propios campos de precio, stock y SKU.
 
-### 2.5 Tabla: orders
+### 2.4 Tabla: orders
 
 | Campo | Tipo | Nullable | Default | Descripción |
 |-------|------|----------|---------|-------------|
@@ -115,26 +105,26 @@ Versión: 2.0 (Ajustada)
 | createdAt | DATETIME | NO | CURRENT_TIMESTAMP | Fecha creación |
 | updatedAt | DATETIME | NO | CURRENT_TIMESTAMP ON UPDATE | Fecha modificación |
 
-### 2.6 Tabla: order_items
+### 2.5 Tabla: order_items
 
 | Campo | Tipo | Nullable | Default | Descripción |
 |-------|------|----------|---------|-------------|
 | id | INT | NO | AUTO_INCREMENT | PK |
 | orderId | INT | NO | - | FK a orders |
-| variantId | INT | NO | - | FK a variants (OBLIGATORIO) |
+| productId | INT | YES | NULL | FK a products |
 | quantity | INT | NO | - | Cantidad |
-| priceAtPurchase | DECIMAL(10,2) | NO | - | Snapshot precio |
+| priceAtPurchase | DECIMAL(10,2) | YES | NULL | Snapshot precio |
 | createdAt | DATETIME | NO | CURRENT_TIMESTAMP | Fecha creación |
 
-**Nota**: variantId es obligatorio. El productId se obtiene mediante variant.productId.
+**Nota**: productId es nullable por compatibilidad histórica.
 
-### 2.7 Tabla: cart_items (para usuarios autenticados)
+### 2.6 Tabla: cart_items (para usuarios autenticados)
 
 | Campo | Tipo | Nullable | Default | Descripción |
 |-------|------|----------|---------|-------------|
 | id | INT | NO | AUTO_INCREMENT | PK |
 | userId | INT | NO | - | FK a users |
-| variantId | INT | NO | - | FK a variants |
+| productId | INT | NO | - | FK a products |
 | quantity | INT | NO | 1 | Cantidad |
 | createdAt | DATETIME | NO | CURRENT_TIMESTAMP | Fecha creación |
 | updatedAt | DATETIME | NO | CURRENT_TIMESTAMP ON UPDATE | Fecha modificación |
@@ -148,22 +138,15 @@ Versión: 2.0 (Ajustada)
 | User → Order | 1:N | Un usuario puede tener muchos pedidos |
 | Category → Category | 1:N (autoreferencia) | Categorías pueden tener subcategorías |
 | Category → Product | 1:N | Una categoría puede tener muchos productos |
-| Product → Variant | 1:N | Un producto puede tener muchas variantes |
 | Order → OrderItem | 1:N | Un pedido tiene muchos items |
-| Variant → OrderItem | 1:N | Una variante puede aparecer en muchos items |
+| Product → OrderItem | 1:N | Un producto puede aparecer en muchos items |
 | User → CartItem | 1:N | Un usuario tiene un carrito |
 
 ---
 
 ## 4. Reglas de Negocio - Precio
 
-**Regla única y sin ambigüedad**:
-
-- **Toda variante DEBE tener precio propio** (campo `price` es NOT NULL)
-- Product NO tiene campo de precio
-- El precio de una variante es independiente de cualquier otra variante o producto
-
-Esta regla elimina cualquier posibilidad de ambigüedad sobre cuál precio usar.
+**Regla**: El precio se define directamente en el producto.
 
 ---
 
@@ -174,7 +157,7 @@ Esta regla elimina cualquier posibilidad de ambigüedad sobre cuál precio usar.
 | Tabla | Campo(s) | Razón |
 |-------|----------|-------|
 | users | email | Evitar duplicados, login rápido |
-| variants | sku | SKUs deben ser únicos |
+| products | sku | SKUs deben ser únicos |
 
 ### 5.2 Índices de Rendimiento
 
@@ -182,13 +165,12 @@ Esta regla elimina cualquier posibilidad de ambigüedad sobre cuál precio usar.
 |-------|----------|-------|
 | products | categoryId, isActive | Filtrado por categoría y activos |
 | products | isActive | Listar solo productos activos |
-| variants | productId | Obtener variantes de un producto |
-| variants | stock | Alertas de stock bajo |
+| products | stock | Alertas de stock bajo |
 | orders | userId | Historial de pedidos del usuario |
 | orders | status | Filtrar por estado (admin) |
 | order_items | orderId | Obtener items de un pedido |
 | cart_items | userId | Obtener carrito del usuario |
-| cart_items | userId, variantId | Evitar duplicados en carrito |
+| cart_items | userId, productId | Evitar duplicados en carrito |
 
 ---
 
@@ -209,7 +191,7 @@ Esta regla elimina cualquier posibilidad de ambigüedad sobre cuál precio usar.
   1. Validar stock disponible
   2. Crear registro en orders
   3. Crear registros en order_items
-  4. Decrementar stock en variants
+  4. Decrementar stock en productos
   5. Rollback si cualquier paso falla
 
 ### 6.4 Consultas Frecuentes
@@ -228,7 +210,6 @@ Esta regla elimina cualquier posibilidad de ambigüedad sobre cuál precio usar.
 |-------|--------|-------|
 | email | 255 | RFC 5321 |
 | name (producto) | 200 | UX |
-| name (variante) | 200 | UX |
 | sku | 50 | Código interno |
 | price | DECIMAL(10,2) | Máximo 99,999,999.99 |
 | stock | INT | Máximo 2,147,483,647 |
@@ -239,12 +220,11 @@ Esta regla elimina cualquier posibilidad de ambigüedad sobre cuál precio usar.
 |----------|-----------|-----------|
 | category.parentId | SET NULL | CASCADE |
 | product.categoryId | SET NULL | CASCADE |
-| variant.productId | CASCADE | CASCADE |
 | order.userId | RESTRICT | CASCADE |
 | order_item.orderId | CASCADE | CASCADE |
-| order_item.variantId | RESTRICT | CASCADE |
+| order_item.productId | RESTRICT | CASCADE |
 | cart_item.userId | CASCADE | CASCADE |
-| cart_item.variantId | CASCADE | CASCADE |
+| cart_item.productId | CASCADE | CASCADE |
 
 ---
 
@@ -256,14 +236,9 @@ Esta regla elimina cualquier posibilidad de ambigüedad sobre cuál precio usar.
 │ (RESTRICT)      └──────────┘     └────┬─────┘
 └─────────┘                             │
                                       ▼
-                              ┌──────────────┐
-                              │   VARIANT    │
-                              └──────┬───────┘
-                                     │
-                                     ▼
-                              ┌──────────────┐
-                              │   PRODUCT    │
-                              └──────────────┘
+                               ┌──────────────┐
+                               │   PRODUCT    │
+                               └──────────────┘
 
 CASCADE: Elimina hijos automáticamente
 RESTRICT: Impide eliminar si hay dependientes
@@ -280,4 +255,4 @@ SET NULL: Pone en NULL el FK
 2. **Charset**: utf8mb4 para soporte completo de emojis y caracteres especiales.
 3. **Collation**: utf8mb4_unicode_ci para ordenamiento correcto en español.
 4. **Timestamps**: Todos los registros tienen createdAt/updatedAt.
-5. **Precio**: Toda variante DEBE tener precio propio (NOT NULL).
+5. **Precio**: El precio se define directamente en el producto.

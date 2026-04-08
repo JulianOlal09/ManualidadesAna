@@ -27,9 +27,9 @@
 |---|----------|-----------|------------|------------------|
 | 1 | Credenciales en `.env` | **CRÍTICA** | `backend/.env` | Mover a Railway (ya desplegado) |
 | 2 | JWT Secret débil | **ALTA** | `.env: JWT_SECRET` | Rotar inmediatamente |
-| 3 | CORS permisivo | **MEDIA** | `backend/src/app.ts` | Restringir a dominio de producción |
+| 3 | CORS permisivo | ~~**MEDIA**~~ | ~~`backend/src/app.ts`~~ | ✅ **IMPLEMENTADO** - Ahora permite solo dominios configurados |
 | 4 | Rate limiting | **MEDIA** | Express app | Considerar agregar |
-| 5 | Sin logs estructurados | **BAJA** | Varios archivos | Mejorar para monitoreo |
+| 5 | Sin logs estructurados | ~~**BAJA**~~ | ~~Varios archivos~~ | ✅ **IMPLEMENTADO** - Winston integrado |
 
 ---
 
@@ -65,30 +65,24 @@ git rm --cached frontend/.env.local
 
 ### Fase 2: Refuerzos de Seguridad (1 semana)
 
-#### 2.1 Configurar CORS para Producción
+#### 2.1 ✅ CORS Configurado (Implementado)
 
 **Ubicación**: `backend/src/app.ts`
 
 ```typescript
-// Cambiar de:
-app.use(cors({
-  origin: '*',
-  credentials: true,
-}));
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:3000'];
 
-// A (después del deploy):
-const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? allowedOrigins 
-    : ['http://localhost:3000'],
+  origin: allowedOrigins,
   credentials: true,
 }));
 ```
 
 **Variables en Railway**:
 ```
-ALLOWED_ORIGINS=https://manualidades-ana.vercel.app
+ALLOWED_ORIGINS=https://manualidades-ana.vercel.app,https://www.manualidadesana.com,https://manualidadesana.com,http://localhost:3000
 ```
 
 #### 2.2 Agregar Rate Limiting (Opcional)
@@ -116,29 +110,49 @@ app.use('/api', limiter);
 
 ### Fase 3: Monitoreo y Logging (2 semanas)
 
-#### 3.1 Implementar Logging Estructurado
+#### 3.1 ✅ Logging Estructurado (Implementado)
 
-Reemplazar `console.log/error` con biblioteca de logs:
+**Instalado**: winston
 
-```bash
-npm install winston
-```
+**Archivo**: `backend/src/utils/logger.ts`
 
-Crear `backend/src/utils/logger.ts`:
 ```typescript
 import winston from 'winston';
 
-export const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
+const logLevel = process.env.LOG_LEVEL || 'info';
+
+const logger = winston.createLogger({
+  level: logLevel,
   format: winston.format.combine(
     winston.format.timestamp(),
+    winston.format.errors({ stack: true }),
     winston.format.json()
   ),
+  defaultMeta: { service: 'manualidades-ana-api' },
   transports: [
-    new winston.transports.Console(),
-    new winston.transports.File({ filename: 'error.log', level: 'error' })
+    new winston.transports.Console({
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.printf(...)
+      )
+    })
   ]
 });
+
+export default logger;
+```
+
+**Archivos actualizados**:
+- `server.ts` - Logs de inicio
+- `app.ts` - Manejo de errores
+- `routes/customOrder.routes.ts` - Errores de rutas
+- `services/storage.service.ts` - Errores de storage
+
+**Output**:
+```
+2026-04-08T00:39:04.925Z [info]: Iniciando servidor...
+2026-04-08T00:39:05.333Z [info]: Database connected
+2026-04-08T00:39:05.335Z [info]: Server running on port 3001
 ```
 
 #### 3.2 Configurar Alertas de Seguridad

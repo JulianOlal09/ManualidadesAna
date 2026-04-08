@@ -1,5 +1,5 @@
 # Arquitectura del Sistema - Manualidades Ana
-Versión: 1.0
+Versión: 2.0 (Sin variantes)
 
 ---
 
@@ -46,7 +46,7 @@ Versión: 1.0
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                        BASE DE DATOS (MySQL)                             │
 │  ┌─────────────────────────────────────────────────────────────────┐     │
-│  │  Users │ Products │ Variants │ Categories │ Orders │ OrderItems│    │
+│  │  Users │ Products │ Categories │ Orders │ OrderItems│    │
 │  └─────────────────────────────────────────────────────────────────┘     │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -108,7 +108,7 @@ Usuario → Login Request → Express (Route) → AuthController
                   Transacción DB:
                     1. Crear pedido
                     2. Crear items con snapshot precio
-                    3. Reducir stock variantes
+                    3. Reducir stock productos
                         ↓
                   Response: Order ID
 ```
@@ -201,9 +201,10 @@ D:\Proyectos\Manualidades Ana\
 │ email (unique)  │       │ name            │
 │ password_hash   │       │ description     │
 │ name            │       │ parentId (FK)   │
-│ role (ENUM)     │       └────────┬────────┘
-│ createdAt       │                │
-│ updatedAt       │                │
+│ phone           │       │ isActive        │
+│ role (ENUM)     │       │ createdAt       │
+│ createdAt       │       │ updatedAt       │
+│ updatedAt       │       └────────┬────────┘
 └────────┬────────┘                │
          │                         │
          │ 1:N                     │ 1:N
@@ -214,25 +215,13 @@ D:\Proyectos\Manualidades Ana\
 │ id (PK)                                     │
 │ name                                        │
 │ description                                 │
-│ basePrice                                   │
-│ categoryId (FK)                            │
-│ imageUrl                                    │
-│ isActive (boolean)                          │
-│ createdAt                                   │
-│ updatedAt                                   │
-└─────────────────────┬───────────────────────┘
-                      │ 1:N
-                      ▼
-┌─────────────────────────────────────────────┐
-│                  Variant                     │
-├─────────────────────────────────────────────┤
-│ id (PK)                                     │
-│ productId (FK)                             │
-│ name (ej: "Rojo - Grande")                 │
-│ sku (unique)                               │
-│ price (nullable, hereda si null)            │
+│ price                                       │
+│ sku                                         │
 │ stock                                       │
-│ isActive (boolean)                         │
+│ marginPercentage                            │
+│ categoryId (FK)                            │
+│ imageUrl1, imageUrl2, imageUrl3             │
+│ isActive (boolean)                          │
 │ createdAt                                   │
 │ updatedAt                                   │
 └─────────────────────────────────────────────┘
@@ -243,11 +232,10 @@ D:\Proyectos\Manualidades Ana\
 │ id (PK)         │       │ id (PK)         │
 │ userId (FK)     │◄──┐   │ orderId (FK)    │
 │ status (ENUM)   │   └──│ productId (FK)  │
-│ totalAmount     │       │ variantId (FK) │
-│ createdAt       │       │ quantity        │
-│ updatedAt       │       │ priceAtPurchase │
-└─────────────────┘       │ (snapshot)      │
-                         └─────────────────┘
+│ totalAmount     │       │ quantity        │
+│ createdAt       │       │ priceAtPurchase │
+│ updatedAt       │       │ (snapshot)      │
+└─────────────────┘       └─────────────────┘
 ```
 
 ### 4.2 Relaciones entre Componentes
@@ -305,22 +293,13 @@ D:\Proyectos\Manualidades Ana\
 | Método | Endpoint | Descripción | Auth |
 |--------|----------|-------------|------|
 | GET | `/api/products` | Listar productos (paginados, filtro por categoría) | Público |
-| GET | `/api/products/:id` | Obtener producto con variantes | Público |
+| GET | `/api/products/:id` | Obtener producto | Público |
 | POST | `/api/products` | Crear producto | ADMIN |
 | PUT | `/api/products/:id` | Actualizar producto | ADMIN |
 | DELETE | `/api/products/:id` | Desactivar producto | ADMIN |
 | POST | `/api/products/:id/images` | Subir imagen | ADMIN |
 
-### 5.3 Variantes
-
-| Método | Endpoint | Descripción | Auth |
-|--------|----------|-------------|------|
-| GET | `/api/products/:productId/variants` | Listar variantes de un producto | Público |
-| POST | `/api/products/:productId/variants` | Crear variante | ADMIN |
-| PUT | `/api/variants/:id` | Actualizar variante | ADMIN |
-| DELETE | `/api/variants/:id` | Desactivar variante | ADMIN |
-
-### 5.4 Categorías
+### 5.3 Categorías
 
 | Método | Endpoint | Descripción | Auth |
 |--------|----------|-------------|------|
@@ -335,8 +314,8 @@ D:\Proyectos\Manualidades Ana\
 |--------|----------|-------------|------|
 | GET | `/api/cart` | Obtener carrito | JWT |
 | POST | `/api/cart/items` | Agregar item | JWT |
-| PUT | `/api/cart/items/:variantId` | Actualizar cantidad | JWT |
-| DELETE | `/api/cart/items/:variantId` | Eliminar item | JWT |
+| PUT | `/api/cart/items/:productId` | Actualizar cantidad | JWT |
+| DELETE | `/api/cart/items/:productId` | Eliminar item | JWT |
 | DELETE | `/api/cart` | Vaciar carrito | JWT |
 
 ### 5.6 Pedidos
@@ -353,9 +332,9 @@ D:\Proyectos\Manualidades Ana\
 
 | Método | Endpoint | Descripción | Auth |
 |--------|----------|-------------|------|
-| GET | `/api/admin/inventory` | Ver stock de variantes | ADMIN |
-| POST | `/api/admin/inventory/:variantId` | Entrada manual de stock | ADMIN |
-| GET | `/api/admin/inventory/alerts` | Variantes con stock bajo | ADMIN |
+| GET | `/api/admin/inventory` | Ver stock de productos | ADMIN |
+| POST | `/api/admin/inventory/:productId` | Entrada manual de stock | ADMIN |
+| GET | `/api/admin/inventory/alerts` | Productos con stock bajo | ADMIN |
 
 ### 5.8 Resumen de Rutas Protegidas
 
@@ -371,8 +350,8 @@ CLIENTE (JWT + rol CLIENT):
   - GET /api/auth/me
   - GET /api/cart
   - POST /api/cart/items
-  - PUT /api/cart/items/:variantId
-  - DELETE /api/cart/items/:variantId
+  - PUT /api/cart/items/:productId
+  - DELETE /api/cart/items/:productId
   - DELETE /api/cart
   - POST /api/orders
   - GET /api/orders
@@ -381,12 +360,11 @@ CLIENTE (JWT + rol CLIENT):
 ADMIN (JWT + rol ADMIN):
   - Todas las anteriores +
   - CRUD /api/products
-  - CRUD /api/variants
   - CRUD /api/categories
   - GET /api/admin/orders
   - PUT /api/orders/:id/status
   - GET /api/admin/inventory
-  - POST /api/admin/inventory/:variantId
+  - POST /api/admin/inventory/:productId
   - GET /api/admin/inventory/alerts
   - POST /api/products/:id/images
 ```
@@ -399,7 +377,7 @@ ADMIN (JWT + rol ADMIN):
 
 | Rol | Descripción | Permisos |
 |-----|-------------|----------|
-| ADMIN | Administrador del sistema | Gestión completa de productos, categorías, variantes, pedidos e inventario |
+| ADMIN | Administrador del sistema | Gestión completa de productos, categorías, pedidos e inventario |
 | CLIENT | Cliente Comprador | Navegar catálogo, gestionar carrito, realizar pedidos, ver historial |
 
 ### 6.2 Matriz de Permisos
@@ -410,7 +388,6 @@ ADMIN (JWT + rol ADMIN):
 | Productos (crear/editar/eliminar) | ✓ | ✗ |
 | Categorías (lectura) | ✓ | ✓ |
 | Categorías (crear/editar/eliminar) | ✓ | ✗ |
-| Variantes (crear/editar/eliminar) | ✓ | ✗ |
 | Carrito (gestionar) | ✓ | ✓ (propio) |
 | Pedidos (crear) | ✗ | ✓ (propio) |
 | Pedidos (ver propios) | ✓ | ✓ |
@@ -503,10 +480,10 @@ Middleware: authenticateToken
 ### 8.1 Excepciones Transaccionales
 
 Crear pedido debe ejecutarse en transacción:
-1. Validar stock de todas las variantes
+1. Validar stock de todos los productos
 2. Crear registro de pedido
 3. Crear items con snapshot de precio
-4. Reducir stock de variantes
+4. Reducir stock de productos
 5. Si falla → Rollback completo
 
 ### 8.2 Concurrencia

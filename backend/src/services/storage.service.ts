@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { v4 as uuidv4 } from 'uuid';
+import logger from '../utils/logger.js';
 
 const s3Client = new S3Client({
   endpoint: process.env.AWS_ENDPOINT_URL,
@@ -56,6 +57,6 @@ export async function deleteImage(urlOrKey: string): Promise<void> {
       })
     );
   } catch (error) {
-    console.error('Failed to delete image:', key, error);
+    logger.error('Failed to delete image', error, { key });
   }
 }

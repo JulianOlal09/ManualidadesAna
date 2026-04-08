@@ -10,12 +10,17 @@ import orderRoutes from './routes/order.routes.js';
 import inventoryRoutes from './routes/inventory.routes.js';
 import supplyRoutes from './routes/supply.routes.js';
 import customOrderRoutes from './routes/customOrder.routes.js';
+import logger from './utils/logger.js';
 
 const app: Application = express();
 
 app.use(helmet());
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:3000'];
+
 app.use(cors({
-  origin: '*',
+  origin: allowedOrigins,
   credentials: true,
 }));
 app.use(morgan('dev'));
@@ -40,7 +45,7 @@ app.use('/api', inventoryRoutes);
 app.use('/api', supplyRoutes);
 
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
-  console.error('Error:', err.message);
+  logger.error('Error:', err.message, { stack: err.stack });
   res.status(500).json({
     success: false,
     error: {

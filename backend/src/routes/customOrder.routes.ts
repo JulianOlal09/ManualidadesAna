@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { Resend } from 'resend';
 import { verifyTokenMiddleware, AuthRequest, verifyAdminMiddleware } from '../middlewares/auth.middleware.js';
 import { prisma } from '../lib/prisma.js';
+import logger from '../utils/logger.js';
 
 const router = express.Router();
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -45,7 +46,7 @@ router.get('/mis-pedidos', verifyTokenMiddleware, async (req: AuthRequest, res: 
       data: customOrders,
     });
   } catch (error) {
-    console.error('Error fetching custom orders:', error);
+    logger.error('Error fetching custom orders', error);
     res.status(500).json({
       success: false,
       error: {
@@ -140,7 +141,7 @@ router.post('/pedido', verifyTokenMiddleware, async (req: AuthRequest, res: Resp
       },
     });
   } catch (error) {
-    console.error('Error sending contact email:', error);
+    logger.error('Error sending contact email', error);
     res.status(500).json({
       success: false,
       error: {
@@ -197,7 +198,7 @@ router.get('/admin/all', verifyTokenMiddleware, verifyAdminMiddleware, async (re
       },
     });
   } catch (error) {
-    console.error('Error fetching custom orders (admin):', error);
+    logger.error('Error fetching custom orders (admin)', error);
     res.status(500).json({
       success: false,
       error: {
@@ -247,7 +248,7 @@ router.patch('/admin/:id/status', verifyTokenMiddleware, verifyAdminMiddleware, 
       data: customOrder,
     });
   } catch (error) {
-    console.error('Error updating custom order status:', error);
+    logger.error('Error updating custom order status', error);
     res.status(500).json({
       success: false,
       error: {

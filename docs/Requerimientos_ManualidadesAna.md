@@ -23,7 +23,7 @@ El sistema debe ser escalable, seguro y preparado para futuras integraciones de 
 
 El sistema incluye:
 
-- Catálogo de productos con variantes
+- Catálogo de productos
 - Gestión de inventario
 - Registro e inicio de sesión
 - Carrito de compras
@@ -48,20 +48,13 @@ El agente NO debe implementar funcionalidades fuera de este alcance.
 # 3. Definiciones del Dominio
 
 Producto:
-Entidad base que contiene nombre, descripción, precio base y categoría.
-
-Variante:
-Sub-entidad de producto que puede modificar:
-- Precio
-- Stock
-- SKU
-- Estado
+Entidad base que contiene nombre, descripción, precio, stock, SKU y categoría.
 
 Pedido:
 Registro formal de compra generado por un cliente autenticado.
 
 Snapshot de precio:
-Copia del precio almacenada en el pedido al momento de la compra.
+Copia del precio almacenado en el pedido al momento de la compra.
 No debe cambiar aunque el producto cambie de precio posteriormente.
 
 ---
@@ -78,15 +71,7 @@ El sistema MUST permitir:
 - Listar productos por categoría
 - Subir imágenes
 
-Cada producto puede tener múltiples variantes.
-
-Cada variante MUST tener:
-- Stock independiente
-- SKU único
-- Estado (activo/inactivo)
-
-Si una variante no define precio propio:
-Debe heredar el precio base del producto.
+Cada producto tiene su propio stock, SKU y precio.
 
 ---
 
@@ -99,7 +84,7 @@ El sistema MUST:
 - Permitir entrada manual de stock
 - Mostrar alerta visual de stock bajo
 
-El inventario se gestiona a nivel variante cuando existan variantes.
+El inventario se gestiona a nivel de producto.
 
 ---
 
@@ -107,7 +92,7 @@ El inventario se gestiona a nivel variante cuando existan variantes.
 
 El sistema MUST:
 
-- Permitir agregar productos o variantes
+- Permitir agregar productos
 - Permitir modificar cantidades
 - Permitir eliminar items
 
@@ -158,7 +143,6 @@ Cambios futuros en precios NO deben afectar pedidos históricos.
 El sistema MUST NOT:
 
 - Eliminar físicamente productos con pedidos asociados
-- Eliminar variantes asociadas a pedidos históricos
 
 En su lugar:
 Deben marcarse como inactivos.
