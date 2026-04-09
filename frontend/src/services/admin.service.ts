@@ -54,7 +54,7 @@ export const adminProductService = {
     throw new Error(response.data.error?.message || 'Failed to fetch product');
   },
 
-  async create(data: CreateProductInput, imageFiles?: File[]): Promise<Product> {
+  async create(data: CreateProductInput, imageFiles?: Array<File | null>): Promise<Product> {
     const formData = new FormData();
     formData.append('name', data.name);
     if (data.description) formData.append('description', data.description);
@@ -65,8 +65,8 @@ export const adminProductService = {
     
     // Add multiple images (max 3)
     if (imageFiles && imageFiles.length > 0) {
-      imageFiles.forEach((file) => {
-        formData.append('images', file);
+      imageFiles.forEach((file, index) => {
+        if (file) formData.append(`image${index + 1}`, file);
       });
     }
 
@@ -77,7 +77,7 @@ export const adminProductService = {
     throw new Error(response.data.error?.message || 'Failed to create product');
   },
 
-  async update(id: number, data: UpdateProductInput, imageFiles?: File[]): Promise<Product> {
+  async update(id: number, data: UpdateProductInput, imageFiles?: Array<File | null>): Promise<Product> {
     const formData = new FormData();
     if (data.name) formData.append('name', data.name);
     if (data.description !== undefined) formData.append('description', data.description || '');
@@ -91,8 +91,8 @@ export const adminProductService = {
     
     // Add multiple images (max 3)
     if (imageFiles && imageFiles.length > 0) {
-      imageFiles.forEach((file) => {
-        formData.append('images', file);
+      imageFiles.forEach((file, index) => {
+        if (file) formData.append(`image${index + 1}`, file);
       });
     }
 

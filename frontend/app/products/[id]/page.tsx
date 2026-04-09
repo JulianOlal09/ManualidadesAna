@@ -120,27 +120,84 @@ export default function ProductDetailPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8">
         <div className="space-y-2">
-          {/* Main image */}
-          <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-            {currentImage ? (
-              <img
-                src={currentImage}
-                alt={product.name}
-                className="w-full h-full object-cover rounded-lg"
-              />
-            ) : (
-              <span className="text-5xl sm:text-6xl text-gray-300">📦</span>
-            )}
+          {/* Imagen principal con recuadro fijo y flechas - centrado */}
+          <div className="flex justify-center">
+            <div className="flex gap-2 items-center">
+              {/* Miniaturas a la izquierda */}
+              {availableImages.length > 1 && (
+                <div className="hidden sm:flex flex-col justify-center gap-2 w-16 flex-shrink-0">
+                  {availableImages.map((imageUrl, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                        selectedImageIndex === index
+                          ? 'border-gray-300 shadow-md'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={`${product.name} - ${index + 1}`}
+                        className="block w-full h-full object-cover rounded-lg"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {/* Contenedor fijo para flechas e imagen */}
+              <div className="flex items-center gap-2">
+                {/* Flecha izquierda */}
+                {availableImages.length > 1 && (
+                  <button
+                    onClick={() => setSelectedImageIndex((selectedImageIndex - 1 + availableImages.length) % availableImages.length)}
+                    className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full hover:bg-gray-100 border border-gray-200 flex items-center justify-center"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                )}
+                
+                {/* Recuadro de imagen FIJO */}
+                <div className="w-[280px] sm:w-[400px] h-[350px] sm:h-[500px] rounded-lg overflow-hidden bg-white flex items-center justify-center">
+                  {currentImage ? (
+                    <img
+                      src={currentImage}
+                      alt={product.name}
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  ) : (
+                    <div className="bg-gray-100 rounded-lg flex items-center justify-center aspect-square w-48">
+                      <span className="text-5xl sm:text-6xl text-gray-300">📦</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Flecha derecha */}
+                {availableImages.length > 1 && (
+                  <button
+                    onClick={() => setSelectedImageIndex((selectedImageIndex + 1) % availableImages.length)}
+                    className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full hover:bg-gray-100 border border-gray-200 flex items-center justify-center"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
-          
-          {/* Thumbnail gallery */}
+
+          {/* Miniaturas inferior en mobile */}
           {availableImages.length > 1 && (
-            <div className="flex gap-2">
+            <div className="flex sm:hidden justify-center gap-2">
               {availableImages.map((imageUrl, index) => (
                 <button
                   key={index}
                   onClick={() => setSelectedImageIndex(index)}
-                  className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                  className={`w-14 h-14 rounded-lg overflow-hidden border-2 transition-all flex-shrink-0 ${
                     selectedImageIndex === index
                       ? 'border-gray-300 shadow-md'
                       : 'border-gray-200 hover:border-gray-300'
@@ -149,7 +206,7 @@ export default function ProductDetailPage() {
                   <img
                     src={imageUrl}
                     alt={`${product.name} - ${index + 1}`}
-                    className="w-full h-full object-cover"
+                    className="block w-full h-full object-cover rounded-lg"
                   />
                 </button>
               ))}

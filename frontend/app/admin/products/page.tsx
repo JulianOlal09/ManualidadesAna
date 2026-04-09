@@ -95,9 +95,10 @@ export default function AdminProductsPage() {
       const newFiles = [...imageFiles];
       const newPreviews = [...previewUrls];
       const newDeletes = [...deleteImages];
+      const newFile = new File([file], file.name, { type: file.type });
       
-      newFiles[index] = file;
-      newPreviews[index] = URL.createObjectURL(file);
+      newFiles[index] = newFile;
+      newPreviews[index] = URL.createObjectURL(newFile);
       newDeletes[index] = false;
       
       setImageFiles(newFiles);
@@ -124,7 +125,7 @@ export default function AdminProductsPage() {
     setIsSaving(true);
     setError('');
     try {
-      const filesToUpload = imageFiles.filter((f): f is File => f !== null);
+      const filesToUpload = imageFiles;
       
       if (modalMode === 'createProduct') {
         await adminProductService.create(productForm, filesToUpload.length > 0 ? filesToUpload : undefined);

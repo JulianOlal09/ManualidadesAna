@@ -559,5 +559,52 @@ npm run dev
 
 ---
 
+## 18. Corrección de Bug en Edición de Imágenes (Abril 2026)
+
+### 18.1 Problema
+Al editar un producto existente con imágenes, si el usuario reemplazaba solo algunas imágenes (ej. solo imagen 2 y 3), la imagen 1 se eliminaba o reemplazaba incorrectamente.
+
+### 18.2 Causa
+El frontend enviaba las imágenes como un array comprimido (solo los archivos no nulos), y el backend asumía que `files[0]` correspondía a `imageUrl1`, lo cual no era correcto cuando se omitían índices.
+
+### 18.3 Solución
+- **Backend**: Cambio de `multer.array('images', 3)` a `multer.fields()` con campos `image1`, `image2`, `image3` separados.
+- **Frontend**: Envío de imágenes con nombres de campo explícitos (`image1`, `image2`, `image3`) conservando la posición original.
+
+### 18.4 Archivos Modificados
+- `backend/src/routes/product.routes.ts`
+- `backend/src/controllers/product.controller.ts`
+- `frontend/src/services/admin.service.ts`
+- `frontend/app/admin/products/page.tsx`
+
+---
+
+## 19. Mejoras en Galería de Producto (Abril 2026)
+
+### 19.1 Nueva Presentación
+Se rediseñó la galería de la página de detalle de producto:
+
+#### Desktop
+- Miniaturas: Columna vertical a la izquierda del recuadro de imagen
+- Imagen principal: Recuadro fijo de 400px de ancho × 500px de alto
+- Flechas de navegación: A los lados del recuadro de imagen (fuera del recuadro), con posición fija
+- Fondo del recuadro: Blanco
+
+#### Móvil
+- Imagen principal: Recuadro fijo de 280px de ancho × 350px de alto
+- Flechas: A los lados del recuadro (fijas, no se mueven)
+- Miniaturas: Debajo de la imagen principal (sin flechas adicionales)
+
+### 19.2 Características
+- **Recuadro de imagen fijo**: Alto y ancho constantes independientemente del tamaño de la imagen
+- **Imágenes centradas**: Usando `object-contain` para mostrar la imagen completa sin recortes
+- **Flechas fijas**: Siempre a la misma altura, nunca se mueven
+- **Esquinas redondeadas**: Todas las imágenes tienen `rounded-lg`
+
+### 19.3 Archivos Modificados
+- `frontend/app/products/[id]/page.tsx`
+
+---
+
 *Documento actualizado: Abril 2026*
 *Versión del proyecto: 1.0.0*

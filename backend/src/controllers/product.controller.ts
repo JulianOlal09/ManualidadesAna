@@ -98,7 +98,7 @@ export async function createProductController(
 ): Promise<void> {
   try {
     const { name, description, categoryId, price, sku, stock } = req.body;
-    const files = req.files as Express.Multer.File[] | undefined;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       res.status(400).json({
@@ -116,10 +116,13 @@ export async function createProductController(
     let imageUrl2: string | undefined;
     let imageUrl3: string | undefined;
 
-    if (files && files.length > 0) {
-      if (files[0]) imageUrl1 = await uploadImage(files[0].buffer, files[0].originalname);
-      if (files[1]) imageUrl2 = await uploadImage(files[1].buffer, files[1].originalname);
-      if (files[2]) imageUrl3 = await uploadImage(files[2].buffer, files[2].originalname);
+    if (files) {
+      const file1 = files.image1?.[0];
+      const file2 = files.image2?.[0];
+      const file3 = files.image3?.[0];
+      if (file1) imageUrl1 = await uploadImage(file1.buffer, file1.originalname);
+      if (file2) imageUrl2 = await uploadImage(file2.buffer, file2.originalname);
+      if (file3) imageUrl3 = await uploadImage(file3.buffer, file3.originalname);
     }
 
     const categoryIdNumber = categoryId ? Number(categoryId) : undefined;
@@ -187,7 +190,7 @@ export async function updateProductController(
 ): Promise<void> {
   try {
     const idParam = req.params.id;
-    const files = req.files as Express.Multer.File[] | undefined;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
     
     if (!idParam || typeof idParam !== 'string') {
       res.status(400).json({
@@ -270,16 +273,19 @@ export async function updateProductController(
     const existingProduct = await import('../services/product.service.js').then(m => m.getProductById(id));
     
     // Handle new file uploads
-    if (files && files.length > 0) {
+    if (files) {
+      const file1 = files.image1?.[0];
+      const file2 = files.image2?.[0];
+      const file3 = files.image3?.[0];
       // Delete old images that will be replaced
-      if (files[0] && existingProduct?.imageUrl1) await deleteImage(existingProduct.imageUrl1);
-      if (files[1] && existingProduct?.imageUrl2) await deleteImage(existingProduct.imageUrl2);
-      if (files[2] && existingProduct?.imageUrl3) await deleteImage(existingProduct.imageUrl3);
+      if (file1 && existingProduct?.imageUrl1) await deleteImage(existingProduct.imageUrl1);
+      if (file2 && existingProduct?.imageUrl2) await deleteImage(existingProduct.imageUrl2);
+      if (file3 && existingProduct?.imageUrl3) await deleteImage(existingProduct.imageUrl3);
       
       // Upload new images
-      if (files[0]) updateData.imageUrl1 = await uploadImage(files[0].buffer, files[0].originalname);
-      if (files[1]) updateData.imageUrl2 = await uploadImage(files[1].buffer, files[1].originalname);
-      if (files[2]) updateData.imageUrl3 = await uploadImage(files[2].buffer, files[2].originalname);
+      if (file1) updateData.imageUrl1 = await uploadImage(file1.buffer, file1.originalname);
+      if (file2) updateData.imageUrl2 = await uploadImage(file2.buffer, file2.originalname);
+      if (file3) updateData.imageUrl3 = await uploadImage(file3.buffer, file3.originalname);
     }
     
     // Handle delete flags
